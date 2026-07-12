@@ -1,0 +1,18 @@
+# Binaries
+*.bin
+*.out
+*.exe
+hl_sbe_client
+monad_evm_gateway
+solana_tpu_client
+
+# Build directories
+build/
+bin/
+obj/
+
+# Logs and system files
+*.log
+.DS_Store
+.vscode/
+.idea/
