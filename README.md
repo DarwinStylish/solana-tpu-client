@@ -1,22 +1,33 @@
-# Solana TPU Execution Gateway
+# Solana TPU Client
+
+High-performance, kernel-bypass execution client for the Solana network.
 
 ## Overview
-A zero-copy, high-throughput execution client for the Solana network. This gateway is designed for institutional-grade liquidity providers to interface directly with the TPU (Transaction Processing Unit), bypassing standard JSON-RPC overhead to achieve microsecond-level execution determinism.
 
-## Technical Architecture
-- **TPU Direct-Path:** Interfaces with the Solana TPU cluster via raw UDP-based transaction injection.
-- **Memory-Mapped Deserialization:** Utilizes zero-copy Borsh parsing to map blockchain state directly into C structures.
-- **Strict Modularity:** Architecture follows a header-contract pattern, separating venue-specific transformation logic from the core execution engine.
+This adapter parses raw Solana Borsh-encoded trade events into the unified `event_t` struct used by the core execution engine. The parser is header-only (`adapter_solana.h` in `hft_core/include`) for zero-overhead inlining.
 
-## Performance Benchmarks
-- **Deserialization Latency:** < 500ns (worst-case).
-- **Packet Overhead:** Minimized via direct packet crafting.
+## Features
 
-## Grant Significance
-This infrastructure serves as a critical utility for the Solana ecosystem, enabling high-frequency searchers to operate with lower latency, reducing network congestion, and providing a stable, open-source template for incoming HFT firms.
+- **Borsh-to-C zero-copy deserialization**: Direct struct casting from wire bytes
+- **Millisecond-to-nanosecond timestamp normalization**: Converts Solana's ms timestamps to the engine's ns resolution
+- **Deterministic latency**: No allocations, no branching on the happy path
+
+## Grant Milestone Roadmap
+
+- [x] Milestone 1: Borsh-to-C deserializer and state sync verification
+- [ ] Milestone 2: TPU injection and Ed25519 optimized signing loop
+- [ ] Milestone 3: Mainnet shadow-mode deployment and security audit
 
 ## Integration
-This gateway is maintained as part of a modular HFT monorepo. It requires an orchestrator-compatible core engine to function.
 
----
-*Built for the Solana Foundation Grant Program.*
+This module is consumed as a Git submodule by `hft_orchestrator`. All shared headers live in `hft_core/include`.
+
+## Build & Test
+
+```bash
+make test
+```
+
+## License
+
+Apache 2.0 — see the root [hft_orchestrator LICENSE](https://github.com/DarwinStylish/hft_orchestrator/blob/main/LICENSE).
