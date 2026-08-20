@@ -1,5 +1,5 @@
 CC       = gcc
-CFLAGS   = -O3 -Wall -Werror -std=c11
+CFLAGS = -O3 -Wall -Wextra -Werror -std=c11 -fstack-protector-strong -D_FORTIFY_SOURCE=2
 CORE_INC = ../../engine/private/include
 INCLUDES = -I$(CORE_INC)
 
