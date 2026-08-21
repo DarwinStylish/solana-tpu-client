@@ -14,8 +14,8 @@ all: $(TEST_SOLANA)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(TEST_SOLANA): tests/test_solana_tpu.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) $< -o $@
+$(TEST_SOLANA): tests/test_solana_tpu.c src/solana_adapter.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -pthread $^ -o $@
 
 test: $(TEST_SOLANA)
 	@$(TEST_SOLANA)

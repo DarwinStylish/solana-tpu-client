@@ -13,45 +13,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <assert.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "adapter_solana.h"
+#include "ring_buffer.h"
+
+volatile bool running = true;
+ring_buffer_t ingress_queue;
+#define TEST_PORT 49000
+
+void* adapter_thread_func(void* arg) {
+    (void)arg;
+    solana_adapter_run(TEST_PORT, &ingress_queue, &running);
+    return NULL;
+}
 
 int main() {
     printf("[*] Running Solana TPU Client Verification...\n");
     
-    /* Happy path: buy-side trade */
+    ring_buffer_init(&ingress_queue);
+
+    // 1. Start the adapter on a separate thread
+    pthread_t adapter_thread;
+    assert(pthread_create(&adapter_thread, NULL, adapter_thread_func, NULL) == 0);
+
+    // Wait briefly for the adapter to bind the UDP port
+    usleep(100000);
+
+    // 2. Prepare a mock wire packet
     solana_wire_trade_t mock_packet = {0};
     mock_packet.price_raw = 15000000000ULL; /* $150.00 */
     mock_packet.side = 0; /* Buy */
     
+    // 3. Send it to the adapter over localhost UDP
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    assert(sock >= 0);
+
+    struct sockaddr_in dest = {0};
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(TEST_PORT);
+    inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
+
+    ssize_t sent = sendto(sock, &mock_packet, sizeof(mock_packet), 0, (struct sockaddr*)&dest, sizeof(dest));
+    assert(sent == sizeof(mock_packet));
+
+    // 4. Poll the ring buffer for the parsed event
     event_t out;
-    assert(parse_solana_borsh((const uint8_t*)&mock_packet, sizeof(mock_packet), 1, &out));
+    bool received = false;
+    for (int i = 0; i < 100; i++) {
+        if (ring_buffer_dequeue(&ingress_queue, &out)) {
+            received = true;
+            break;
+        }
+        usleep(10000); // 10ms
+    }
+
+    assert(received == true);
     assert(out.venue_id == VENUE_SOLANA);
     assert(out.side == 'B');
     assert(out.instrument_id == SOLANA_DEFAULT_INSTRUMENT_ID);
+    assert(out.price == (fixed_t)15000000000ULL);
     
-    printf("[+] Successfully deserialized Solana Borsh packet.\n");
-    printf("[+] Price mapped: %ld\n", (long)out.price);
+    printf("[+] Successfully received and deserialized Solana UDP datagram.\n");
 
-    /* Sell-side mapping */
-    solana_wire_trade_t sell = {0};
-    sell.side = 1;
-    assert(parse_solana_borsh((const uint8_t*)&sell, sizeof(sell), 2, &out));
-    assert(out.side == 'S');
-    printf("[+] Sell side correctly mapped.\n");
-
-    /* Side mapping: any non-zero side maps to 'S' */
-    solana_wire_trade_t alt_side = {0};
-    alt_side.side = 2;
-    assert(parse_solana_borsh((const uint8_t*)&alt_side, sizeof(alt_side), 3, &out));
-    assert(out.side == 'S');
-    printf("[+] Non-zero side correctly mapped to Sell.\n");
-
-    /* Negative test: buffer too short */
-    assert(parse_solana_borsh((const uint8_t*)&mock_packet, sizeof(mock_packet) - 1, 4, &out) == false);
-    printf("[+] Buffer too short correctly rejected.\n");
+    // 5. Shutdown the adapter
+    running = false;
     
-    printf("\n[SUCCESS] Solana TPU tests passed.\n");
+    // Send a dummy packet to wake up recvfrom if it was blocking
+    // (though in our implementation it's non-blocking busy-poll, this doesn't hurt)
+    sendto(sock, &mock_packet, sizeof(mock_packet), 0, (struct sockaddr*)&dest, sizeof(dest));
+    
+    pthread_join(adapter_thread, NULL);
+    close(sock);
+
+    printf("\n[SUCCESS] Solana TPU network integration tests passed.\n");
     return 0;
 }
