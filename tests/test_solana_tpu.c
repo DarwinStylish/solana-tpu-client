@@ -35,7 +35,7 @@ void* adapter_thread_func(void* arg) {
 }
 
 int main() {
-    printf("[*] Running Solana TPU Client Verification...\n");
+    printf("Running Solana ingress prototype verification...\n");
     
     ring_buffer_init(&ingress_queue);
 
@@ -80,7 +80,7 @@ int main() {
     assert(out.instrument_id == SOLANA_DEFAULT_INSTRUMENT_ID);
     assert(out.price == (fixed_t)15000000000ULL);
     
-    printf("[+] Successfully received and deserialized Solana UDP datagram.\n");
+    printf("Received and decoded local ingress datagram.\n");
 
     // 5. Shutdown the adapter
     running = false;
@@ -92,6 +92,6 @@ int main() {
     pthread_join(adapter_thread, NULL);
     close(sock);
 
-    printf("\n[SUCCESS] Solana TPU network integration tests passed.\n");
+    printf("Solana ingress prototype test passed.\n");
     return 0;
 }

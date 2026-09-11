@@ -1,44 +1,75 @@
 # Solana TPU Client
 
+Status: pre-transport prototype.
 
-High-performance, kernel-bypass execution client for the Solana network.
+This repository is intended to evolve into a native Solana TPU transaction-delivery library. The current implementation does not submit transactions to validator TPU endpoints and does not implement Solana TPU QUIC transport.
 
-## Overview
+## Current Implementation
 
-This adapter parses raw Solana Borsh-encoded trade events into the unified `event_t` struct used by the core execution engine. The parser is header-only (`adapter_solana.h` in `hft_core/include`) for zero-overhead inlining.
+The repository currently contains an experimental ingress path used with the HFT execution research stack:
 
-## Compiler Requirements
-- **GCC**: >= 4.9 with C11 support.
-- **Extensions**: `__int128` extension required (supported by GCC/Clang on x86-64 or aarch64).
+- a non-blocking local UDP receiver;
+- a fixed-layout, program-specific trade-event decoder;
+- translation into the private engine `event_t` representation;
+- enqueue into the engine SPSC ring buffer;
+- a localhost UDP integration test;
+- a single-threaded parser-and-queue microbenchmark.
 
-## Features
+The current parser and shared event types live in the sibling private `hft_core` repository. As a result, this prototype is not yet a standalone public library.
 
-- **Borsh-to-C zero-copy deserialization**: Direct struct casting from wire bytes
-- **Millisecond-to-nanosecond timestamp normalization**: Converts Solana's ms timestamps to the engine's ns resolution
-- **Deterministic latency**: No allocations, no branching on the happy path
+See [CURRENT_STATE.md](CURRENT_STATE.md) for the exact implementation boundary.
 
-## API Updates
-Note: The adapter parser API has been updated. Calling the parsing methods now requires passing both the `wire_len` and `seq_id` parameters to properly support bounds checking and sequence tracking.
+## Not Yet Implemented
 
+The following capabilities are target functionality and are not part of the current implementation:
 
+- signed serialized transaction submission;
+- leader-schedule and validator-contact discovery;
+- TPU QUIC/TLS transport and `solana-tpu` protocol negotiation;
+- validator identity and stake-weighted QoS support;
+- connection pooling and leader prewarming;
+- adaptive leader routing and controlled fanout;
+- retry, backpressure, and connection-failure handling;
+- transaction landing or confirmation tracking;
+- Agave and Firedancer TPU-ingress interoperability testing;
+- kernel-bypass networking.
 
-## Integration
+## Design Direction
 
-This module is consumed as a Git submodule by `hft_orchestrator`. All shared headers live in `hft_core/include`.
+The intended public boundary is a standalone native transport library that accepts opaque signed serialized Solana transactions and delivers them to appropriate TPU ingress endpoints. HFT strategy, execution logic, and private engine state are outside that boundary.
 
-## Build & Test
+The transport design is intended to remain independent of a particular transaction version wherever possible. Transaction construction and signing belong to the calling application.
+
+## Current Build Requirements
+
+- Linux
+- GCC or Clang with C11 support
+- POSIX sockets and pthreads
+- sibling `hft_core` headers from the current research workspace
+
+The dependency on `hft_core` is part of the current prototype architecture and prevents this revision from being a standalone TPU client.
+
+## Build and Test
 
 ```bash
 make test
 ```
 
-## Governance & Architecture
+The test exercises the current localhost UDP ingress prototype. It is not a Solana cluster or TPU integration test.
 
-* **Code of Conduct:** Please review our [Code of Conduct](CODE_OF_CONDUCT.md).
-* **Architecture Decision Records (ADRs):** 
-  * [ADR-0001: Zero-Allocation Borsh Deserialization](docs/architecture/0001-zero-allocation-borsh-deserialization.md)
-  * [ADR-0002: Use C11 for Gateway Performance](docs/architecture/0002-use-c11-for-gateway-performance.md)
+The microbenchmark can be run with:
+
+```bash
+make bench
+```
+
+See [tests/README.md](tests/README.md) before interpreting benchmark results.
+
+## Architecture Records
+
+- [ADR-0001: Fixed-Layout Trade-Event Parser Prototype](docs/architecture/0001-zero-allocation-borsh-deserialization.md)
+- [ADR-0002: Use C11 for the Native Integration Layer](docs/architecture/0002-use-c11-for-gateway-performance.md)
 
 ## License
 
-This project is licensed under the Apache License 2.0.
+Apache License 2.0.

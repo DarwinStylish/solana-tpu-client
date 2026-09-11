@@ -28,11 +28,11 @@
 #define SOLANA_MAX_DATAGRAM_SIZE 1500
 
 /**
- * @brief Main network polling loop for the Solana TPU adapter.
+ * @brief Main polling loop for the local Solana ingress prototype.
  *
- * This function should be spawned on an isolated CPU core. It busy-polls
- * a UDP socket for incoming Borsh datagrams from the Solana cluster,
- * parses them zero-allocation, and enqueues them to the engine.
+ * This function busy-polls a local UDP socket for datagrams matching the
+ * current fixed-layout trade-event prototype, parses them, and enqueues
+ * normalized events to the private engine.
  *
  * @param port UDP port to listen on.
  * @param ingress_queue SPSC ring buffer for engine ingress.
@@ -41,13 +41,13 @@
 void solana_adapter_run(uint16_t port, ring_buffer_t* ingress_queue, volatile bool* running) {
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
-        perror("[-] Failed to create Solana UDP socket");
+        perror("Failed to create ingress UDP socket");
         return;
     }
 
     int opt = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
-        perror("[-] Failed to set SO_REUSEADDR | SO_REUSEPORT");
+        perror("Failed to configure ingress UDP socket");
         close(sockfd);
         return;
     }
@@ -55,7 +55,7 @@ void solana_adapter_run(uint16_t port, ring_buffer_t* ingress_queue, volatile bo
     /* Set non-blocking for busy-polling */
     int flags = fcntl(sockfd, F_GETFL, 0);
     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        perror("[-] Failed to set O_NONBLOCK");
+        perror("Failed to configure non-blocking ingress socket");
         close(sockfd);
         return;
     }
@@ -66,12 +66,12 @@ void solana_adapter_run(uint16_t port, ring_buffer_t* ingress_queue, volatile bo
     servaddr.sin_port = htons(port);
 
     if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-        perror("[-] Solana adapter bind failed");
+        perror("Ingress prototype bind failed");
         close(sockfd);
         return;
     }
 
-    printf("[*] Solana TPU Adapter listening on UDP port %u\n", port);
+    printf("Solana ingress prototype listening on UDP port %u\n", port);
 
     uint8_t buffer[SOLANA_MAX_DATAGRAM_SIZE];
     uint64_t seq_id = 0;
@@ -87,11 +87,11 @@ void solana_adapter_run(uint16_t port, ring_buffer_t* ingress_queue, volatile bo
                 }
             }
         } else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-            perror("[-] Solana recvfrom error");
+            perror("Ingress prototype recvfrom failed");
             break;
         }
     }
 
     close(sockfd);
-    printf("[*] Solana TPU Adapter shutdown complete.\n");
+    printf("Solana ingress prototype shutdown complete.\n");
 }

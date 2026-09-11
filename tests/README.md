@@ -1,22 +1,51 @@
-# Solana Adapter Benchmark Methodology & Caveats
+# Benchmark Methodology and Caveats
 
-This directory contains high-performance C11 microbenchmarks designed to prove the parsing efficiency and zero-copy architectural design of the Solana TPU gateway adapter.
+The benchmark in this directory evaluates the current fixed-layout event decoder together with one SPSC enqueue/dequeue round trip.
 
-## What This Benchmark Proves
-By running `make bench`, you execute a tight loop that isolates the zero-copy deserialization of Solana Borsh wire protocols.
-- **Pure Parsing Cost:** It proves that unpacking a raw UDP byte array into a canonical `event_t` using direct pointer arithmetic requires extremely minimal CPU cycles (typically ~15-20 nanoseconds).
-- **Zero-Allocation:** It proves that parsing network packets into the system requires zero heap allocations, ensuring that network spikes do not trigger memory fragmentation or OS-level slowdowns.
+It is a synthetic local microbenchmark. It is not a Solana TPU transport benchmark.
 
-## Caveats for Auditors (Tick-to-Trade vs Application Latency)
-When evaluating the output of these benchmarks, please keep the following architectural nuances in mind:
+## Measured Path
 
-1. **Cache Warmth:**
-   The benchmark repeatedly parses from a pre-allocated mock buffer that stays perfectly hot in the CPU's L1 cache. In a live environment, incoming packets stream into cold memory, incurring cache misses when the CPU accesses the payload.
-   
-2. **Cross-Core Synchronization:**
-   This benchmark tests the SPSC ring buffer enqueue on a single thread. In production, pushing the enqueued cache line across the CPU bus to the core engine's thread incurs physical hardware latency (~15-30ns) not reflected in single-threaded tests.
+Each iteration:
 
-3. **Kernel Network Stack Latency:**
-   This benchmark isolates user-space parsing. It does not measure the OS-level cost of socket polling, context switching, or pulling data from the physical NIC hardware. To achieve true nanosecond Tick-to-Trade latency, this adapter must be deployed on specialized hardware (e.g., FPGA NICs) with kernel-bypass networking (like DPDK or OpenOnload).
+1. decodes the same preallocated synthetic trade-event payload;
+2. enqueues the resulting `event_t` into the SPSC ring buffer;
+3. immediately dequeues the event on the same thread.
 
-*In short: This benchmark measures optimal **Parsing Latency**. It provides concrete evidence that the gateway software layer is built for absolute maximum throughput and minimal instruction overhead.*
+The reported average therefore includes both parsing and queue operations.
+
+## What It Can Establish
+
+The benchmark can be used to compare local implementation changes to the current decoder and queue path under the same machine, compiler, build flags, and workload.
+
+The current parser and queue path perform no heap allocation.
+
+## What It Does Not Measure
+
+The benchmark does not measure:
+
+- UDP socket receive cost;
+- NIC or kernel networking latency;
+- QUIC or TLS processing;
+- Solana TPU transaction submission;
+- leader routing;
+- cross-core synchronization;
+- validator processing;
+- transaction propagation or landing;
+- end-to-end application latency.
+
+The same payload is repeatedly reused and is expected to remain cache-hot. Producer and consumer operations also execute sequentially on one thread.
+
+## Interpreting Results
+
+Results are environment-specific and should be reported with:
+
+- CPU model;
+- operating system and kernel;
+- compiler and version;
+- compiler flags;
+- CPU frequency policy;
+- sample count;
+- measurement methodology.
+
+The current executable reports an arithmetic mean. It does not currently report percentile latency distributions.
