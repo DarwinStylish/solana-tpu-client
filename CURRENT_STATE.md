@@ -20,6 +20,8 @@ The current revision implements:
 
 The public repository no longer requires private HFT engine headers or types to compile.
 
+The repository also provides `include/solana/delivery.h`, a type-and-constant-only ABI vocabulary for the future transaction-delivery boundary. No callable delivery behavior is implemented.
+
 ## Public/Private Boundary
 
 The public prototype exposes schema-local decoded fields only.
@@ -35,7 +37,7 @@ It does not expose or depend on:
 
 Translation from the public API into any private execution model belongs to the consuming application.
 
-## Current API Contract
+## Current Ingress API Contract
 
 The fixed-layout decoder accepts exactly 33 bytes. It rejects null pointers, truncated inputs, oversized inputs, and unsupported side discriminators.
 
@@ -48,6 +50,23 @@ Event callbacks are synchronous. The event pointer is valid only while the callb
 The local receiver returns zero after caller-requested shutdown. Operational failures return `-1`; the originating `errno` value is preserved across socket cleanup.
 
 The API is pre-release and is not yet declared a permanent version-1 ABI.
+
+## Delivery ABI Vocabulary
+
+The delivery header defines structural types without declaring callable delivery functions.
+
+Its current contracts include:
+
+- a 32-byte binary validator identity;
+- explicit IPv4/IPv6 endpoint storage without platform `sockaddr` types;
+- host-byte-order endpoint ports;
+- separate validator and endpoint records with explicit association records;
+- leader slot-range records;
+- a topology view carrying generation and caller-observed slot context;
+- opaque request and attempt identifiers;
+- a 64-byte delivery-event envelope whose concrete event codes remain intentionally unfrozen.
+
+The topology aggregate contains native process pointers to caller-owned arrays. No topology installation function exists yet, so no runtime copy or ownership-transfer behavior is implemented.
 
 ## Not Implemented
 
