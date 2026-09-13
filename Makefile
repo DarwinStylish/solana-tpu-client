@@ -14,12 +14,14 @@ LIB_OBJECT = $(BUILD_DIR)/solana_ingress.o
 TEST_INGRESS = $(BUILD_DIR)/test_ingress
 TEST_PROPERTIES = $(BUILD_DIR)/test_decode_properties
 TEST_CPP = $(BUILD_DIR)/test_cpp_linkage
+TEST_DELIVERY_ABI = $(BUILD_DIR)/test_delivery_abi
+TEST_DELIVERY_CPP = $(BUILD_DIR)/test_delivery_cpp
 BENCHMARK = $(BUILD_DIR)/benchmark
 FUZZ_DECODE = $(BUILD_DIR)/fuzz_decode
 
 .PHONY: all test bench fuzz-smoke clean
 
-all: $(LIBRARY) $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(BENCHMARK)
+all: $(LIBRARY) $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(BENCHMARK)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -39,16 +41,24 @@ $(TEST_PROPERTIES): tests/test_decode_properties.c $(LIBRARY)
 $(TEST_CPP): tests/test_cpp_linkage.cpp $(LIBRARY)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
 
+$(TEST_DELIVERY_ABI): tests/test_delivery_abi.c include/solana/delivery.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< -o $@
+
+$(TEST_DELIVERY_CPP): tests/test_delivery_cpp.cpp include/solana/delivery.h | $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $< -o $@
+
 $(FUZZ_DECODE): tests/fuzz_decode.c src/solana_ingress.c include/solana/ingress.h | $(BUILD_DIR)
 	$(FUZZ_CC) $(CPPFLAGS) $(FUZZ_CFLAGS) $(INCLUDES) tests/fuzz_decode.c src/solana_ingress.c -o $@
 
 $(BENCHMARK): tests/benchmark.c $(LIBRARY)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
 
-test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP)
+test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP)
 	@$(TEST_INGRESS)
 	@$(TEST_PROPERTIES)
 	@$(TEST_CPP)
+	@$(TEST_DELIVERY_ABI)
+	@$(TEST_DELIVERY_CPP)
 
 bench: $(BENCHMARK)
 	@$(BENCHMARK)
