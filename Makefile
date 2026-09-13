@@ -1,28 +1,36 @@
-CC       = gcc
-CFLAGS = -O3 -Wall -Wextra -Werror -std=c11 -fstack-protector-strong -D_FORTIFY_SOURCE=2
-CORE_INC = ../../engine/private/include
-INCLUDES = -I$(CORE_INC)
+CC ?= cc
+AR ?= ar
+CFLAGS ?= -O3 -Wall -Wextra -Werror -std=c11 -fstack-protector-strong -D_FORTIFY_SOURCE=2
+CPPFLAGS ?=
+INCLUDES = -Iinclude
 
 BUILD_DIR = build
-
-TEST_SOLANA = $(BUILD_DIR)/test_solana_tpu
-BENCHMARK   = $(BUILD_DIR)/benchmark
+LIBRARY = $(BUILD_DIR)/libsolana_ingress.a
+LIB_OBJECT = $(BUILD_DIR)/solana_ingress.o
+TEST_INGRESS = $(BUILD_DIR)/test_ingress
+BENCHMARK = $(BUILD_DIR)/benchmark
 
 .PHONY: all test bench clean
 
-all: $(TEST_SOLANA) $(BENCHMARK)
+all: $(LIBRARY) $(TEST_INGRESS) $(BENCHMARK)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(TEST_SOLANA): tests/test_solana_tpu.c src/solana_adapter.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -pthread $^ -o $@
+$(LIB_OBJECT): src/solana_ingress.c include/solana/ingress.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-$(BENCHMARK): tests/benchmark.c src/solana_adapter.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -pthread $^ -o $@
+$(LIBRARY): $(LIB_OBJECT)
+	$(AR) rcs $@ $^
 
-test: $(TEST_SOLANA)
-	@$(TEST_SOLANA)
+$(TEST_INGRESS): tests/test_ingress.c $(LIBRARY)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -pthread $< $(LIBRARY) -o $@
+
+$(BENCHMARK): tests/benchmark.c $(LIBRARY)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
+
+test: $(TEST_INGRESS)
+	@$(TEST_INGRESS)
 
 bench: $(BENCHMARK)
 	@$(BENCHMARK)
