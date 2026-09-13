@@ -35,6 +35,20 @@ It does not expose or depend on:
 
 Translation from the public API into any private execution model belongs to the consuming application.
 
+## Current API Contract
+
+The fixed-layout decoder accepts exactly 33 bytes. It rejects null pointers, truncated inputs, oversized inputs, and unsupported side discriminators.
+
+The instruction discriminator is currently exposed as an opaque schema field. This prototype does not define an authoritative set of instruction values and therefore does not reject values based on instruction semantics.
+
+`solana_ingress_event_t` currently occupies 48 bytes. Its reserved bytes are zero-initialized by the decoder and must not be interpreted by consumers. Tests pin the current size and field offsets so accidental ABI drift is detected.
+
+Event callbacks are synchronous. The event pointer is valid only while the callback is executing. Event and lifecycle contexts are caller-owned.
+
+The local receiver returns zero after caller-requested shutdown. Operational failures return `-1`; the originating `errno` value is preserved across socket cleanup.
+
+The API is pre-release and is not yet declared a permanent version-1 ABI.
+
 ## Not Implemented
 
 The current revision does not implement:
