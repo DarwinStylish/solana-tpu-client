@@ -10,12 +10,13 @@ BUILD_DIR = build
 LIBRARY = $(BUILD_DIR)/libsolana_ingress.a
 LIB_OBJECT = $(BUILD_DIR)/solana_ingress.o
 TEST_INGRESS = $(BUILD_DIR)/test_ingress
+TEST_PROPERTIES = $(BUILD_DIR)/test_decode_properties
 TEST_CPP = $(BUILD_DIR)/test_cpp_linkage
 BENCHMARK = $(BUILD_DIR)/benchmark
 
 .PHONY: all test bench clean
 
-all: $(LIBRARY) $(TEST_INGRESS) $(TEST_CPP) $(BENCHMARK)
+all: $(LIBRARY) $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(BENCHMARK)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -29,14 +30,18 @@ $(LIBRARY): $(LIB_OBJECT)
 $(TEST_INGRESS): tests/test_ingress.c $(LIBRARY)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -pthread $< $(LIBRARY) -o $@
 
+$(TEST_PROPERTIES): tests/test_decode_properties.c $(LIBRARY)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
+
 $(TEST_CPP): tests/test_cpp_linkage.cpp $(LIBRARY)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
 
 $(BENCHMARK): tests/benchmark.c $(LIBRARY)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
 
-test: $(TEST_INGRESS) $(TEST_CPP)
+test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP)
 	@$(TEST_INGRESS)
+	@$(TEST_PROPERTIES)
 	@$(TEST_CPP)
 
 bench: $(BENCHMARK)
