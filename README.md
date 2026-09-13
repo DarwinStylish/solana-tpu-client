@@ -85,6 +85,9 @@ The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU
 
 - [ADR-0001: Fixed-Layout Trade-Event Parser Prototype](docs/architecture/0001-zero-allocation-borsh-deserialization.md)
 - [ADR-0002: Use C11 for the Native Integration Layer](docs/architecture/0002-use-c11-for-gateway-performance.md)
+- [ADR-0003: Signed Transaction Delivery Boundary](docs/architecture/0003-transaction-delivery-boundary.md)
+- [ADR-0004: Delivery Status Semantics](docs/architecture/0004-delivery-status-semantics.md)
+- [ADR-0005: Separate Discovery, Routing, Transport, and Observation](docs/architecture/0005-topology-routing-transport-separation.md)
 
 ## License
 

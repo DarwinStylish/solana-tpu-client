@@ -104,3 +104,13 @@ The intended future public transport boundary is:
 5. expose structured delivery status and telemetry.
 
 That future transport functionality is not implemented by this prototype.
+
+## Target Architecture Records
+
+The target transaction-delivery architecture is specified separately from the current prototype:
+
+- [Signed Transaction Delivery Boundary](docs/architecture/0003-transaction-delivery-boundary.md)
+- [Delivery Status Semantics](docs/architecture/0004-delivery-status-semantics.md)
+- [Discovery, Routing, Transport, and Observation Separation](docs/architecture/0005-topology-routing-transport-separation.md)
+
+These records define architectural boundaries only. They do not change the implemented status described above.
