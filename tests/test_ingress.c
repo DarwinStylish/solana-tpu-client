@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -35,10 +36,19 @@ static void on_event(
     atomic_store_explicit(&received, true, memory_order_release);
 }
 
+static int should_continue(void *context) {
+    atomic_bool *flag = context;
+    return atomic_load_explicit(flag, memory_order_acquire) ? 1 : 0;
+}
+
 static void *ingress_thread(void *arg) {
     (void)arg;
     ingress_result = solana_ingress_run_local(
-        TEST_PORT, on_event, &received_event, &running
+        TEST_PORT,
+        on_event,
+        &received_event,
+        should_continue,
+        &running
     );
     return NULL;
 }

@@ -13,7 +13,7 @@ The current revision implements:
 - bounds and side-discriminator validation;
 - a loopback-only non-blocking UDP receiver;
 - callback-based event delivery;
-- C11 atomic shutdown coordination;
+- callback-driven lifecycle coordination with synchronization owned by the caller;
 - localhost integration testing;
 - a synthetic decoder microbenchmark;
 - a standalone static-library build.

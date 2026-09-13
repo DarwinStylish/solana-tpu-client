@@ -62,10 +62,11 @@ bool solana_ingress_decode(
 int solana_ingress_run_local(
     uint16_t port,
     solana_ingress_event_fn on_event,
-    void *context,
-    atomic_bool *running
+    void *event_context,
+    solana_ingress_continue_fn should_continue,
+    void *control_context
 ) {
-    if (on_event == NULL || running == NULL) {
+    if (on_event == NULL || should_continue == NULL) {
         errno = EINVAL;
         return -1;
     }
@@ -103,7 +104,7 @@ int solana_ingress_run_local(
     uint64_t sequence = 0;
     int result = 0;
 
-    while (atomic_load_explicit(running, memory_order_acquire)) {
+    while (should_continue(control_context)) {
         ssize_t received = recvfrom(
             sockfd, buffer, sizeof(buffer), 0, NULL, NULL
         );
@@ -112,7 +113,7 @@ int solana_ingress_run_local(
             solana_ingress_event_t event;
             if (solana_ingress_decode(
                     buffer, (size_t)received, ++sequence, &event)) {
-                on_event(&event, context);
+                on_event(&event, event_context);
             }
             continue;
         }
