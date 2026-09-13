@@ -21,18 +21,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler:
-          - gcc
-          - clang
+        include:
+          - compiler: gcc
+            cc: gcc
+            cxx: g++
+          - compiler: clang
+            cc: clang
+            cxx: clang++
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Build
-        run: make CC=${{ matrix.compiler }} all
+        run: make CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} all
 
       - name: Test
-        run: make CC=${{ matrix.compiler }} test
+        run: make CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} test
 
       - name: Diff check
         run: git diff --check
@@ -57,7 +61,9 @@ jobs:
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
         run: |
           make clean
-          CFLAGS="-O1 -g -Wall -Wextra -Werror -std=c11 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer" make CC=clang test
+          CFLAGS="-O1 -g -Wall -Wextra -Werror -std=c11 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer" \
+          CXXFLAGS="-O1 -g -Wall -Wextra -Werror -std=c++17 -fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer" \
+          make CC=clang CXX=clang++ test
 
   repository-isolation:
     name: repository-isolation
@@ -85,8 +91,8 @@ jobs:
         run: |
           tmpdir="$(mktemp -d)"
           if git archive HEAD | tar -x -C "$tmpdir" &&
-             make -C "$tmpdir" CC=gcc all &&
-             make -C "$tmpdir" CC=gcc test; then
+             make -C "$tmpdir" CC=gcc CXX=g++ all &&
+             make -C "$tmpdir" CC=gcc CXX=g++ test; then
             rm -rf "$tmpdir"
           else
             status=$?

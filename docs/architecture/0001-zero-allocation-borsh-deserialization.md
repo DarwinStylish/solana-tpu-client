@@ -23,7 +23,7 @@ Multi-byte integers are reconstructed as little-endian values rather than loaded
 The decoder validates:
 
 - non-null input and output pointers;
-- minimum payload length;
+- exact payload length;
 - the supported side discriminator.
 
 It performs no heap allocation.

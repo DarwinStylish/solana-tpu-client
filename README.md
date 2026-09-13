@@ -24,6 +24,20 @@ The current prototype builds `build/libsolana_ingress.a` and exposes `include/so
 
 The decoded event contains only schema-local fields. HFT-specific event models, fixed-point types, queues, strategy state, and execution logic are not part of the public API.
 
+The current prototype contract is intentionally narrow:
+
+- `solana_ingress_decode` accepts exactly one 33-byte prototype event;
+- shorter or longer buffers are rejected;
+- the side discriminator accepts only the documented buy and sell values;
+- the instruction discriminator is carried through as an opaque value and is not semantically validated;
+- callback event storage is valid only for the duration of the callback;
+- callers must copy an event if they retain it after the callback returns;
+- callback and control contexts remain owned by the caller;
+- `solana_ingress_run_local` returns `0` on requested shutdown and `-1` on failure, with `errno` identifying the failure;
+- the current event structure occupies 48 bytes and includes reserved bytes that consumers must not interpret.
+
+The project is pre-release. The current layout is tested explicitly to detect accidental ABI changes, but it is not yet declared a permanent version-1 ABI.
+
 ## Not Yet Implemented
 
 The following capabilities remain future work:
@@ -50,7 +64,7 @@ Transaction construction, signing, trading strategy, portfolio state, and privat
 Requirements:
 
 - a POSIX environment supported by the prototype;
-- GCC or Clang with C11 support;
+- GCC/G++ or Clang/Clang++ with C11 and C++17 support;
 - POSIX sockets and pthreads.
 
 Build and test:
