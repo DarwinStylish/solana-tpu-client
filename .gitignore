@@ -16,3 +16,8 @@ obj/
 .DS_Store
 .vscode/
 .idea/
+
+# Local integration artifacts
+hft_core
+job_id.txt
+run_id.txt
