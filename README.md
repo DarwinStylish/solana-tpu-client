@@ -18,7 +18,7 @@ The repository currently provides a standalone experimental ingress module:
 
 See [CURRENT_STATE.md](CURRENT_STATE.md) for the exact implementation boundary.
 
-## Public Prototype API
+## Public Ingress Prototype API
 
 The current prototype builds `build/libsolana_ingress.a` and exposes `include/solana/ingress.h`.
 
@@ -37,6 +37,23 @@ The current prototype contract is intentionally narrow:
 - the current event structure occupies 48 bytes and includes reserved bytes that consumers must not interpret.
 
 The project is pre-release. The current layout is tested explicitly to detect accidental ABI changes, but it is not yet declared a permanent version-1 ABI.
+
+## Delivery ABI Vocabulary
+
+`include/solana/delivery.h` now defines the structural vocabulary for the future transaction-delivery API.
+
+It currently provides:
+
+- ABI version constants;
+- an opaque delivery-client declaration;
+- fixed-width API status, request-ID, and attempt-ID types;
+- validator identity and endpoint representations;
+- explicit validator-to-endpoint associations;
+- leader and topology snapshot records;
+- a minimal extensible submission-options structure;
+- a request/attempt/observation event envelope.
+
+The delivery header currently declares types and constants only. It exposes no client creation, topology installation, submission, polling, routing, transport, or observation functions.
 
 ## Not Yet Implemented
 
