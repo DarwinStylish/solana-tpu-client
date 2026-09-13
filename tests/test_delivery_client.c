@@ -5,6 +5,7 @@
 #include "solana_delivery_internal.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,8 +25,15 @@ typedef struct {
 
 typedef struct {
     size_t allocation_calls;
+    size_t free_calls;
     size_t fail_on_call;
 } failing_allocator_state_t;
+
+typedef struct {
+    size_t calls;
+    bool fail;
+    uint64_t value_ns;
+} controlled_clock_state_t;
 
 static void *failing_calloc(
     void *context,
@@ -50,8 +58,36 @@ static void failing_free(
     void *context,
     void *pointer
 ) {
-    assert(context != NULL);
+    failing_allocator_state_t *state = context;
+
+    assert(state != NULL);
+
+    if (pointer != NULL) {
+        ++state->free_calls;
+    }
+
     free(pointer);
+}
+
+static solana_delivery_status_t controlled_clock(
+    void *context,
+    uint64_t *out_time_ns
+) {
+    controlled_clock_state_t *state = context;
+
+    assert(state != NULL);
+    ++state->calls;
+
+    if (state->fail) {
+        return SOLANA_DELIVERY_STATUS_INTERNAL_ERROR;
+    }
+
+    if (out_time_ns == NULL) {
+        return SOLANA_DELIVERY_STATUS_INTERNAL_ERROR;
+    }
+
+    *out_time_ns = state->value_ns;
+    return SOLANA_DELIVERY_STATUS_OK;
 }
 
 static solana_delivery_client_t *
@@ -522,6 +558,159 @@ static void test_allocation_failure_is_transactional(void) {
     solana_delivery_client_destroy(client);
 }
 
+static void test_clock_failure_is_transactional(void) {
+    fixture_t installed;
+    fixture_t replacement;
+
+    init_fixture(&installed, UINT64_C(50));
+    init_fixture(&replacement, UINT64_C(51));
+
+    replacement.topology.current_slot = UINT64_C(300);
+    replacement.validator.identity.bytes[0] = UINT8_C(11);
+    replacement.endpoint.port = UINT16_C(9002);
+    replacement.leader.first_slot = UINT64_C(300);
+    replacement.leader.last_slot = UINT64_C(304);
+
+    failing_allocator_state_t allocator_state = {0};
+    controlled_clock_state_t clock_state = {
+        .calls = 0U,
+        .fail = false,
+        .value_ns = UINT64_C(123456789),
+    };
+
+    solana_delivery_allocator_t allocator = {
+        .calloc_fn = failing_calloc,
+        .free_fn = failing_free,
+        .context = &allocator_state,
+    };
+
+    solana_delivery_client_t *client = NULL;
+
+    assert(
+        solana_delivery_client_create_with_dependencies(
+            &allocator,
+            controlled_clock,
+            &clock_state,
+            &client
+        ) == SOLANA_DELIVERY_STATUS_OK
+    );
+    assert(client != NULL);
+
+    allocator_state.allocation_calls = 0U;
+    allocator_state.free_calls = 0U;
+
+    assert(solana_delivery_client_install_topology(
+               client,
+               &installed.topology
+           ) == SOLANA_DELIVERY_STATUS_OK);
+
+    assert(clock_state.calls == 1U);
+    assert(client->topology.received_monotonic_ns ==
+           UINT64_C(123456789));
+
+    solana_delivery_validator_t *old_validators =
+        client->topology.validators;
+    solana_delivery_endpoint_t *old_endpoints =
+        client->topology.endpoints;
+    solana_delivery_validator_endpoint_t *old_associations =
+        client->topology.validator_endpoints;
+    solana_delivery_leader_t *old_leaders =
+        client->topology.leaders;
+
+    const uint64_t old_generation =
+        client->topology.view.generation;
+    const uint64_t old_slot =
+        client->topology.view.current_slot;
+    const uint64_t old_receipt_time =
+        client->topology.received_monotonic_ns;
+    const uint8_t old_identity =
+        client->topology.validators[0].identity.bytes[0];
+    const uint16_t old_port =
+        client->topology.endpoints[0].port;
+    const uint64_t old_first_slot =
+        client->topology.leaders[0].first_slot;
+    const uint64_t old_last_slot =
+        client->topology.leaders[0].last_slot;
+
+    allocator_state.allocation_calls = 0U;
+    allocator_state.free_calls = 0U;
+    clock_state.calls = 0U;
+    clock_state.fail = true;
+
+    assert(solana_delivery_client_install_topology(
+               client,
+               &replacement.topology
+           ) == SOLANA_DELIVERY_STATUS_INTERNAL_ERROR);
+
+    assert(allocator_state.allocation_calls == 4U);
+    assert(allocator_state.free_calls == 4U);
+    assert(clock_state.calls == 1U);
+
+    assert(client->has_topology);
+    assert(client->topology.view.generation ==
+           old_generation);
+    assert(client->topology.view.current_slot ==
+           old_slot);
+    assert(client->topology.received_monotonic_ns ==
+           old_receipt_time);
+
+    assert(client->topology.validators ==
+           old_validators);
+    assert(client->topology.endpoints ==
+           old_endpoints);
+    assert(client->topology.validator_endpoints ==
+           old_associations);
+    assert(client->topology.leaders ==
+           old_leaders);
+
+    assert(
+        client->topology.validators[0]
+                .identity.bytes[0] ==
+        old_identity
+    );
+    assert(client->topology.endpoints[0].port ==
+           old_port);
+    assert(client->topology.leaders[0].first_slot ==
+           old_first_slot);
+    assert(client->topology.leaders[0].last_slot ==
+           old_last_slot);
+
+    allocator_state.allocation_calls = 0U;
+    allocator_state.free_calls = 0U;
+    clock_state.calls = 0U;
+    clock_state.fail = false;
+    clock_state.value_ns = UINT64_C(987654321);
+
+    assert(solana_delivery_client_install_topology(
+               client,
+               &replacement.topology
+           ) == SOLANA_DELIVERY_STATUS_OK);
+
+    assert(allocator_state.allocation_calls == 4U);
+    assert(allocator_state.free_calls == 4U);
+    assert(clock_state.calls == 1U);
+
+    assert(client->topology.view.generation ==
+           UINT64_C(51));
+    assert(client->topology.view.current_slot ==
+           UINT64_C(300));
+    assert(client->topology.received_monotonic_ns ==
+           UINT64_C(987654321));
+    assert(
+        client->topology.validators[0]
+                .identity.bytes[0] ==
+        UINT8_C(11)
+    );
+    assert(client->topology.endpoints[0].port ==
+           UINT16_C(9002));
+    assert(client->topology.leaders[0].first_slot ==
+           UINT64_C(300));
+    assert(client->topology.leaders[0].last_slot ==
+           UINT64_C(304));
+
+    solana_delivery_client_destroy(client);
+}
+
 int main(void) {
     test_client_lifecycle();
     test_deep_copy_and_normalization();
@@ -531,5 +720,6 @@ int main(void) {
     test_empty_snapshot_and_receipt_time();
     test_null_install_arguments();
     test_allocation_failure_is_transactional();
+    test_clock_failure_is_transactional();
     return 0;
 }
