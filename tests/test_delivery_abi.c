@@ -52,6 +52,22 @@ _Static_assert(offsetof(solana_delivery_topology_t, generation) == 8,
                "topology generation offset changed");
 _Static_assert(offsetof(solana_delivery_topology_t, current_slot) == 16,
                "topology current_slot offset changed");
+_Static_assert(
+    sizeof(((solana_delivery_topology_t *)0)->validator_stride) == 4,
+    "validator stride ABI changed"
+);
+_Static_assert(
+    sizeof(((solana_delivery_topology_t *)0)->endpoint_stride) == 4,
+    "endpoint stride ABI changed"
+);
+_Static_assert(
+    sizeof(((solana_delivery_topology_t *)0)->validator_endpoint_stride) == 4,
+    "validator-endpoint stride ABI changed"
+);
+_Static_assert(
+    sizeof(((solana_delivery_topology_t *)0)->leader_stride) == 4,
+    "leader stride ABI changed"
+);
 
 _Static_assert(sizeof(solana_delivery_event_t) == 64,
                "delivery event ABI changed");

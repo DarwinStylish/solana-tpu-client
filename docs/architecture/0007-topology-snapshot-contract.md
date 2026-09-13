@@ -32,6 +32,23 @@ On successful installation, the implementation must internalize the data it requ
 
 The simplest Phase 1 contract is copy-on-install: caller-provided snapshot memory may be released or reused after the update call returns.
 
+## Array Layout and Extensibility
+
+Topology arrays carry an explicit byte stride in addition to their pointer and element count.
+
+The stride is the byte distance between consecutive elements. This is required because validator, endpoint, association, and leader records use `struct_size` and may grow by appending fields in compatible ABI revisions.
+
+A consumer must not assume that its own `sizeof(element_type)` is the stride of a caller-supplied array.
+
+For each non-empty array:
+
+- the pointer must be non-null;
+- the stride must be large enough for the ABI prefix understood by the consumer;
+- each element must declare a `struct_size` large enough for that prefix;
+- an element `struct_size` must not exceed the supplied stride.
+
+This preserves append-only structure evolution without making topology arrays ambiguous.
+
 ## Snapshot Identity
 
 Each installed snapshot receives or carries a monotonically comparable generation value.
