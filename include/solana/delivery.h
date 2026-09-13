@@ -116,6 +116,14 @@ typedef struct {
  *
  * The pointer members are process-ABI pointers. A future installation
  * call will copy required snapshot data before returning success.
+ *
+ * Each array has an explicit byte stride. This permits an element
+ * structure to grow by appending fields without requiring an older
+ * consumer to assume its own sizeof(element) as the array stride.
+ *
+ * For a non-empty array, its stride describes the byte distance from
+ * one element to the next. Structural validation will require enough
+ * bytes for the ABI prefix understood by the implementation.
  */
 typedef struct {
     uint32_t struct_size;
@@ -124,17 +132,30 @@ typedef struct {
     uint64_t current_slot;
     const solana_delivery_validator_t *validators;
     uint32_t validator_count;
-    uint32_t reserved1;
+    uint32_t validator_stride;
     const solana_delivery_endpoint_t *endpoints;
     uint32_t endpoint_count;
-    uint32_t reserved2;
+    uint32_t endpoint_stride;
     const solana_delivery_validator_endpoint_t *validator_endpoints;
     uint32_t validator_endpoint_count;
-    uint32_t reserved3;
+    uint32_t validator_endpoint_stride;
     const solana_delivery_leader_t *leaders;
     uint32_t leader_count;
-    uint32_t reserved4;
+    uint32_t leader_stride;
 } solana_delivery_topology_t;
+
+/*
+ * Validate the structural integrity of one caller-owned topology view.
+ *
+ * This function does not install topology, perform discovery, select
+ * routes, open connections, or submit transactions.
+ *
+ * SOLANA_DELIVERY_STATUS_OK means only that the supplied representation
+ * satisfies the currently supported structural contract.
+ */
+solana_delivery_status_t solana_delivery_topology_validate(
+    const solana_delivery_topology_t *topology
+);
 
 /*
  * Phase 1 submission options vocabulary.

@@ -20,7 +20,9 @@ The current revision implements:
 
 The public repository no longer requires private HFT engine headers or types to compile.
 
-The repository also provides `include/solana/delivery.h`, a type-and-constant-only ABI vocabulary for the future transaction-delivery boundary. No callable delivery behavior is implemented.
+The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
+
+The delivery library currently implements one callable operation: pure structural validation of caller-supplied topology views. It does not implement topology installation, routing, transaction submission, transport, polling, or observation.
 
 ## Public/Private Boundary
 
@@ -67,6 +69,27 @@ Its current contracts include:
 - a 64-byte delivery-event envelope whose concrete event codes remain intentionally unfrozen.
 
 The topology aggregate contains native process pointers to caller-owned arrays. No topology installation function exists yet, so no runtime copy or ownership-transfer behavior is implemented.
+
+Topology arrays carry explicit byte strides so append-only record extensions do not require consumers to assume their own `sizeof(element_type)` as the caller array layout.
+
+`solana_delivery_topology_validate` currently validates:
+
+- the known topology structure prefix;
+- array base alignment;
+- non-empty array pointer/count/stride consistency;
+- stride compatibility with known element prefixes;
+- element `struct_size` bounds;
+- reserved fields;
+- supported endpoint discriminators;
+- nonzero endpoint ports;
+- canonical IPv4 tail bytes;
+- validator-to-endpoint index bounds;
+- leader validator references;
+- ordered leader slot ranges.
+
+The validator is intentionally structural. It does not decide whether the topology contains a usable route, whether a snapshot is newer than another snapshot, or whether topology is fresh enough for a submission policy.
+
+An empty topology is structurally valid.
 
 ## Not Implemented
 

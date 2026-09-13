@@ -53,7 +53,26 @@ It currently provides:
 - a minimal extensible submission-options structure;
 - a request/attempt/observation event envelope.
 
-The delivery header currently declares types and constants only. It exposes no client creation, topology installation, submission, polling, routing, transport, or observation functions.
+The delivery boundary now also builds `build/libsolana_delivery.a` and exposes `solana_delivery_topology_validate`.
+
+The validator checks the structural integrity of caller-supplied topology views, including:
+
+- public structure-size prefixes;
+- explicit array strides;
+- array pointer/count consistency;
+- element `struct_size` compatibility with the supplied stride;
+- alignment requirements;
+- reserved fields;
+- endpoint address-family, transport, and role discriminators;
+- endpoint port and IPv4 representation rules;
+- validator-to-endpoint references;
+- leader validator references and slot-range ordering.
+
+Topology validation is pure and does not install topology, perform discovery, select routes, open connections, submit transactions, or report landing.
+
+An empty topology is structurally valid. Route availability, snapshot ordering, freshness, and routing policy remain separate concerns.
+
+No client creation, topology installation, submission, polling, routing, transport, or observation behavior is implemented.
 
 ## Not Yet Implemented
 
