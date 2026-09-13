@@ -28,6 +28,12 @@ static uint64_t load_u64_le(const uint8_t *p) {
            ((uint64_t)p[7] << 56);
 }
 
+static int close_preserving_errno(int fd, int saved_errno) {
+    (void)close(fd);
+    errno = saved_errno;
+    return -1;
+}
+
 bool solana_ingress_decode(
     const uint8_t *wire_buffer,
     size_t wire_len,
@@ -35,7 +41,7 @@ bool solana_ingress_decode(
     solana_ingress_event_t *out_event
 ) {
     if (wire_buffer == NULL || out_event == NULL ||
-        wire_len < SOLANA_INGRESS_WIRE_SIZE) {
+        wire_len != SOLANA_INGRESS_WIRE_SIZE) {
         return false;
     }
 
@@ -54,7 +60,7 @@ bool solana_ingress_decode(
     out_event->quantity_raw =
         load_u64_le(wire_buffer + OFFSET_QUANTITY_RAW);
     out_event->ingress_sequence_id = ingress_sequence_id;
-    out_event->side = (solana_trade_side_t)side;
+    out_event->side = side;
 
     return true;
 }
@@ -79,14 +85,19 @@ int solana_ingress_run_local(
     int opt = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
                    &opt, sizeof(opt)) < 0) {
-        close(sockfd);
-        return -1;
+        int saved_errno = errno;
+        return close_preserving_errno(sockfd, saved_errno);
     }
 
     int flags = fcntl(sockfd, F_GETFL, 0);
-    if (flags < 0 || fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        close(sockfd);
-        return -1;
+    if (flags < 0) {
+        int saved_errno = errno;
+        return close_preserving_errno(sockfd, saved_errno);
+    }
+
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+        int saved_errno = errno;
+        return close_preserving_errno(sockfd, saved_errno);
     }
 
     struct sockaddr_in address = {0};
@@ -96,13 +107,12 @@ int solana_ingress_run_local(
 
     if (bind(sockfd, (const struct sockaddr *)&address,
              sizeof(address)) < 0) {
-        close(sockfd);
-        return -1;
+        int saved_errno = errno;
+        return close_preserving_errno(sockfd, saved_errno);
     }
 
     uint8_t buffer[SOLANA_MAX_DATAGRAM_SIZE];
     uint64_t sequence = 0;
-    int result = 0;
 
     while (should_continue(control_context)) {
         ssize_t received = recvfrom(
@@ -119,11 +129,10 @@ int solana_ingress_run_local(
         }
 
         if (received < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-            result = -1;
-            break;
+            int saved_errno = errno;
+            return close_preserving_errno(sockfd, saved_errno);
         }
     }
 
-    close(sockfd);
-    return result;
+    return close(sockfd);
 }
