@@ -88,6 +88,9 @@ The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU
 - [ADR-0003: Signed Transaction Delivery Boundary](docs/architecture/0003-transaction-delivery-boundary.md)
 - [ADR-0004: Delivery Status Semantics](docs/architecture/0004-delivery-status-semantics.md)
 - [ADR-0005: Separate Discovery, Routing, Transport, and Observation](docs/architecture/0005-topology-routing-transport-separation.md)
+- [ADR-0006: Stable C ABI for Transaction Delivery](docs/architecture/0006-stable-delivery-c-abi.md)
+- [ADR-0007: Topology Snapshot Contract](docs/architecture/0007-topology-snapshot-contract.md)
+- [ADR-0008: Request and Attempt Event Model](docs/architecture/0008-request-attempt-event-model.md)
 
 ## Technical Roadmap
 
