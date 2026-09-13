@@ -145,6 +145,19 @@ typedef struct {
 } solana_delivery_topology_t;
 
 /*
+ * Validate the structural integrity of one caller-owned topology view.
+ *
+ * This function does not install topology, perform discovery, select
+ * routes, open connections, or submit transactions.
+ *
+ * SOLANA_DELIVERY_STATUS_OK means only that the supplied representation
+ * satisfies the currently supported structural contract.
+ */
+solana_delivery_status_t solana_delivery_topology_validate(
+    const solana_delivery_topology_t *topology
+);
+
+/*
  * Phase 1 submission options vocabulary.
  * flags must currently be SOLANA_DELIVERY_SUBMIT_FLAGS_NONE.
  * Additional fields may be appended in compatible ABI revisions.

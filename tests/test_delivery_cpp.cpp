@@ -26,5 +26,15 @@ int main() {
     endpoint.struct_size =
         static_cast<std::uint32_t>(sizeof(endpoint));
 
-    return endpoint.struct_size == sizeof(endpoint) ? 0 : 1;
+    solana_delivery_topology_t topology{};
+    topology.struct_size =
+        static_cast<std::uint32_t>(sizeof(topology));
+
+    const solana_delivery_status_t status =
+        solana_delivery_topology_validate(&topology);
+
+    return endpoint.struct_size == sizeof(endpoint) &&
+                   status == SOLANA_DELIVERY_STATUS_OK
+               ? 0
+               : 1;
 }
