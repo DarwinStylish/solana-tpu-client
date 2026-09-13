@@ -15,6 +15,37 @@
 #define STRUCT_MIN_SIZE(type, field) \
     (offsetof(type, field) + sizeof(((type *)0)->field))
 
+static void *system_calloc(
+    void *context,
+    size_t count,
+    size_t size
+) {
+    (void)context;
+    return calloc(count, size);
+}
+
+static void system_free(
+    void *context,
+    void *pointer
+) {
+    (void)context;
+    free(pointer);
+}
+
+static const solana_delivery_allocator_t SYSTEM_ALLOCATOR = {
+    .calloc_fn = system_calloc,
+    .free_fn = system_free,
+    .context = NULL,
+};
+
+static bool allocator_is_valid(
+    const solana_delivery_allocator_t *allocator
+) {
+    return allocator != NULL &&
+           allocator->calloc_fn != NULL &&
+           allocator->free_fn != NULL;
+}
+
 static bool bytes_are_zero(
     const uint8_t *bytes,
     size_t length
@@ -375,28 +406,48 @@ solana_delivery_status_t solana_delivery_topology_validate(
 }
 
 static void owned_topology_release(
+    const solana_delivery_allocator_t *allocator,
     solana_delivery_owned_topology_t *owned
 ) {
     if (owned == NULL) {
         return;
     }
 
-    free(owned->validators);
-    free(owned->endpoints);
-    free(owned->validator_endpoints);
-    free(owned->leaders);
+    if (!allocator_is_valid(allocator)) {
+        return;
+    }
+
+    allocator->free_fn(
+        allocator->context,
+        owned->validators
+    );
+    allocator->free_fn(
+        allocator->context,
+        owned->endpoints
+    );
+    allocator->free_fn(
+        allocator->context,
+        owned->validator_endpoints
+    );
+    allocator->free_fn(
+        allocator->context,
+        owned->leaders
+    );
 
     memset(owned, 0, sizeof(*owned));
 }
 
 static solana_delivery_status_t clone_array(
+    const solana_delivery_allocator_t *allocator,
     const void *source,
     uint32_t count,
     uint32_t source_stride,
     size_t element_size,
     void **out_array
 ) {
-    if (out_array == NULL || element_size == 0U) {
+    if (!allocator_is_valid(allocator) ||
+        out_array == NULL ||
+        element_size == 0U) {
         return SOLANA_DELIVERY_STATUS_INTERNAL_ERROR;
     }
 
@@ -410,7 +461,11 @@ static solana_delivery_status_t clone_array(
         return SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED;
     }
 
-    uint8_t *copy = calloc((size_t)count, element_size);
+    uint8_t *copy = allocator->calloc_fn(
+        allocator->context,
+        (size_t)count,
+        element_size
+    );
     if (copy == NULL) {
         return SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED;
     }
@@ -460,10 +515,13 @@ static void normalize_owned_struct_sizes(
 }
 
 static solana_delivery_status_t build_owned_topology(
+    const solana_delivery_allocator_t *allocator,
     const solana_delivery_topology_t *source,
     solana_delivery_owned_topology_t *owned
 ) {
-    if (source == NULL || owned == NULL) {
+    if (!allocator_is_valid(allocator) ||
+        source == NULL ||
+        owned == NULL) {
         return SOLANA_DELIVERY_STATUS_INTERNAL_ERROR;
     }
 
@@ -472,6 +530,7 @@ static solana_delivery_status_t build_owned_topology(
     void *copy = NULL;
 
     solana_delivery_status_t status = clone_array(
+        allocator,
         source->validators,
         source->validator_count,
         source->validator_stride,
@@ -485,6 +544,7 @@ static solana_delivery_status_t build_owned_topology(
     copy = NULL;
 
     status = clone_array(
+        allocator,
         source->endpoints,
         source->endpoint_count,
         source->endpoint_stride,
@@ -498,6 +558,7 @@ static solana_delivery_status_t build_owned_topology(
     copy = NULL;
 
     status = clone_array(
+        allocator,
         source->validator_endpoints,
         source->validator_endpoint_count,
         source->validator_endpoint_stride,
@@ -511,6 +572,7 @@ static solana_delivery_status_t build_owned_topology(
     copy = NULL;
 
     status = clone_array(
+        allocator,
         source->leaders,
         source->leader_count,
         source->leader_stride,
@@ -556,7 +618,7 @@ static solana_delivery_status_t build_owned_topology(
     return SOLANA_DELIVERY_STATUS_OK;
 
 fail:
-    owned_topology_release(owned);
+    owned_topology_release(allocator, owned);
     return status;
 }
 
@@ -588,24 +650,42 @@ static solana_delivery_status_t monotonic_time_ns(
     return SOLANA_DELIVERY_STATUS_OK;
 }
 
-solana_delivery_status_t solana_delivery_client_create(
+solana_delivery_status_t
+solana_delivery_client_create_with_allocator(
+    const solana_delivery_allocator_t *allocator,
     solana_delivery_client_t **out_client
 ) {
-    if (out_client == NULL) {
+    if (!allocator_is_valid(allocator) ||
+        out_client == NULL) {
         return SOLANA_DELIVERY_STATUS_INVALID_ARGUMENT;
     }
 
     *out_client = NULL;
 
     solana_delivery_client_t *client =
-        calloc(1U, sizeof(*client));
+        allocator->calloc_fn(
+            allocator->context,
+            1U,
+            sizeof(*client)
+        );
 
     if (client == NULL) {
         return SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED;
     }
 
+    client->allocator = *allocator;
+
     *out_client = client;
     return SOLANA_DELIVERY_STATUS_OK;
+}
+
+solana_delivery_status_t solana_delivery_client_create(
+    solana_delivery_client_t **out_client
+) {
+    return solana_delivery_client_create_with_allocator(
+        &SYSTEM_ALLOCATOR,
+        out_client
+    );
 }
 
 void solana_delivery_client_destroy(
@@ -615,8 +695,18 @@ void solana_delivery_client_destroy(
         return;
     }
 
-    owned_topology_release(&client->topology);
-    free(client);
+    solana_delivery_allocator_t allocator =
+        client->allocator;
+
+    owned_topology_release(
+        &allocator,
+        &client->topology
+    );
+
+    allocator.free_fn(
+        allocator.context,
+        client
+    );
 }
 
 solana_delivery_status_t solana_delivery_client_install_topology(
@@ -643,6 +733,7 @@ solana_delivery_status_t solana_delivery_client_install_topology(
     solana_delivery_owned_topology_t replacement;
 
     status = build_owned_topology(
+        &client->allocator,
         topology,
         &replacement
     );
@@ -654,11 +745,17 @@ solana_delivery_status_t solana_delivery_client_install_topology(
         &replacement.received_monotonic_ns
     );
     if (status != SOLANA_DELIVERY_STATUS_OK) {
-        owned_topology_release(&replacement);
+        owned_topology_release(
+            &client->allocator,
+            &replacement
+        );
         return status;
     }
 
-    owned_topology_release(&client->topology);
+    owned_topology_release(
+        &client->allocator,
+        &client->topology
+    );
     client->topology = replacement;
     client->has_topology = true;
 
