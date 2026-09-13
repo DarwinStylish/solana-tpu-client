@@ -65,6 +65,13 @@ jobs:
           CXXFLAGS="-O1 -g -Wall -Wextra -Werror -std=c++17 -fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer" \
           make CC=clang CXX=clang++ test
 
+      - name: Fuzz decoder smoke
+        if: matrix.sanitizer == 'address'
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: make FUZZ_CC=clang fuzz-smoke
+
   repository-isolation:
     name: repository-isolation
     runs-on: ubuntu-24.04
