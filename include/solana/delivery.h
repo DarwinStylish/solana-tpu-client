@@ -158,6 +158,40 @@ solana_delivery_status_t solana_delivery_topology_validate(
 );
 
 /*
+ * Create an empty delivery client.
+ *
+ * The returned handle owns all implementation state. Creation,
+ * destruction, and topology installation initially require exclusive
+ * access to the handle.
+ */
+solana_delivery_status_t solana_delivery_client_create(
+    solana_delivery_client_t **out_client
+);
+
+/*
+ * Destroy a delivery client and all implementation-owned state.
+ * Passing NULL is permitted and has no effect.
+ */
+void solana_delivery_client_destroy(
+    solana_delivery_client_t *client
+);
+
+/*
+ * Validate and install one caller-supplied topology snapshot.
+ *
+ * On success the implementation owns an internal copy and retains no
+ * borrowed caller array pointers. After the first successful install,
+ * generation must increase strictly. Equal or lower generations return
+ * SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE.
+ *
+ * Failure leaves the previously installed snapshot unchanged.
+ */
+solana_delivery_status_t solana_delivery_client_install_topology(
+    solana_delivery_client_t *client,
+    const solana_delivery_topology_t *topology
+);
+
+/*
  * Phase 1 submission options vocabulary.
  * flags must currently be SOLANA_DELIVERY_SUBMIT_FLAGS_NONE.
  * Additional fields may be appended in compatible ABI revisions.
