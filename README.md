@@ -1,27 +1,32 @@
 # Solana TPU Client
 
-Status: pre-transport prototype.
+Status: standalone pre-transport prototype.
 
 This repository is intended to evolve into a native Solana TPU transaction-delivery library. The current implementation does not submit transactions to validator TPU endpoints and does not implement Solana TPU QUIC transport.
 
 ## Current Implementation
 
-The repository currently contains an experimental ingress path used with the HFT execution research stack:
+The repository currently provides a standalone experimental ingress module:
 
-- a non-blocking local UDP receiver;
-- a fixed-layout, program-specific trade-event decoder;
-- translation into the private engine `event_t` representation;
-- enqueue into the engine SPSC ring buffer;
-- a localhost UDP integration test;
-- a single-threaded parser-and-queue microbenchmark.
-
-The current parser and shared event types live in the sibling private `hft_core` repository. As a result, this prototype is not yet a standalone public library.
+- a public C11 header under `include/solana/`;
+- a fixed-layout little-endian trade-event decoder;
+- a loopback-only non-blocking UDP ingress prototype;
+- callback-based delivery with no dependency on a private execution engine;
+- a localhost integration test;
+- a synthetic decoder microbenchmark;
+- a static library build artifact.
 
 See [CURRENT_STATE.md](CURRENT_STATE.md) for the exact implementation boundary.
 
+## Public Prototype API
+
+The current prototype builds `build/libsolana_ingress.a` and exposes `include/solana/ingress.h`.
+
+The decoded event contains only schema-local fields. HFT-specific event models, fixed-point types, queues, strategy state, and execution logic are not part of the public API.
+
 ## Not Yet Implemented
 
-The following capabilities are target functionality and are not part of the current implementation:
+The following capabilities remain future work:
 
 - signed serialized transaction submission;
 - leader-schedule and validator-contact discovery;
@@ -34,36 +39,33 @@ The following capabilities are target functionality and are not part of the curr
 - Agave and Firedancer TPU-ingress interoperability testing;
 - kernel-bypass networking.
 
-## Design Direction
+## Target Boundary
 
-The intended public boundary is a standalone native transport library that accepts opaque signed serialized Solana transactions and delivers them to appropriate TPU ingress endpoints. HFT strategy, execution logic, and private engine state are outside that boundary.
+The intended TPU library will accept opaque signed serialized Solana transactions and deliver them to appropriate validator TPU ingress endpoints.
 
-The transport design is intended to remain independent of a particular transaction version wherever possible. Transaction construction and signing belong to the calling application.
+Transaction construction, signing, trading strategy, portfolio state, and private execution-engine behavior remain outside the transport library.
 
-## Current Build Requirements
+## Build
 
-- Linux
-- GCC or Clang with C11 support
-- POSIX sockets and pthreads
-- sibling `hft_core` headers from the current research workspace
+Requirements:
 
-The dependency on `hft_core` is part of the current prototype architecture and prevents this revision from being a standalone TPU client.
+- a POSIX environment supported by the prototype;
+- GCC or Clang with C11 support;
+- POSIX sockets and pthreads.
 
-## Build and Test
+Build and test:
 
 ```bash
 make test
 ```
 
-The test exercises the current localhost UDP ingress prototype. It is not a Solana cluster or TPU integration test.
-
-The microbenchmark can be run with:
+Run the decoder microbenchmark:
 
 ```bash
 make bench
 ```
 
-See [tests/README.md](tests/README.md) before interpreting benchmark results.
+The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU integration test.
 
 ## Architecture Records
 

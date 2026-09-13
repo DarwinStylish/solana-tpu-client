@@ -1,24 +1,20 @@
 # Benchmark Methodology and Caveats
 
-The benchmark in this directory evaluates the current fixed-layout event decoder together with one SPSC enqueue/dequeue round trip.
+The benchmark in this directory evaluates only the standalone fixed-layout decoder.
 
 It is a synthetic local microbenchmark. It is not a Solana TPU transport benchmark.
 
 ## Measured Path
 
-Each iteration:
+Each iteration decodes the same preallocated 33-byte synthetic trade-event payload into a public ingress event structure.
 
-1. decodes the same preallocated synthetic trade-event payload;
-2. enqueues the resulting `event_t` into the SPSC ring buffer;
-3. immediately dequeues the event on the same thread.
-
-The reported average therefore includes both parsing and queue operations.
+A checksum derived from decoded fields is printed so the benchmark computation remains observable.
 
 ## What It Can Establish
 
-The benchmark can be used to compare local implementation changes to the current decoder and queue path under the same machine, compiler, build flags, and workload.
+The benchmark can compare decoder changes under the same machine, compiler, build flags, and workload.
 
-The current parser and queue path perform no heap allocation.
+The decoder performs no heap allocation.
 
 ## What It Does Not Measure
 
@@ -29,23 +25,14 @@ The benchmark does not measure:
 - QUIC or TLS processing;
 - Solana TPU transaction submission;
 - leader routing;
-- cross-core synchronization;
 - validator processing;
 - transaction propagation or landing;
 - end-to-end application latency.
 
-The same payload is repeatedly reused and is expected to remain cache-hot. Producer and consumer operations also execute sequentially on one thread.
+The same input remains cache-hot during the loop.
 
 ## Interpreting Results
 
-Results are environment-specific and should be reported with:
+Results are environment-specific and should be reported with CPU, operating system, compiler, compiler flags, frequency policy, sample count, and measurement methodology.
 
-- CPU model;
-- operating system and kernel;
-- compiler and version;
-- compiler flags;
-- CPU frequency policy;
-- sample count;
-- measurement methodology.
-
-The current executable reports an arithmetic mean. It does not currently report percentile latency distributions.
+The executable reports an arithmetic mean. It does not report percentile latency distributions.
