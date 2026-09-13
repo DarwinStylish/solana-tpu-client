@@ -114,8 +114,9 @@ typedef struct {
  * a Solana slot. current_slot is caller-observed chain context and is
  * distinct from local monotonic freshness tracking.
  *
- * The pointer members are process-ABI pointers. A future installation
- * call will copy required snapshot data before returning success.
+ * The pointer members are process-ABI pointers.
+ * solana_delivery_client_install_topology copies the required snapshot
+ * data before returning success, so caller storage may then be reused.
  *
  * Each array has an explicit byte stride. This permits an element
  * structure to grow by appending fields without requiring an older

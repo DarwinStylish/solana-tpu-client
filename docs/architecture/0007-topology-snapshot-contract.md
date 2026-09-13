@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 topology design.
 
-No topology API described by this record is implemented yet.
+Structural topology validation and copy-on-install client state are implemented. Discovery, routing policy, topology-age policy, transaction submission, and transport remain unimplemented.
 
 ## Context
 
@@ -16,7 +16,7 @@ The delivery core therefore needs a transport-independent input representation f
 
 ## Decision
 
-Phase 1 will define a caller-supplied topology snapshot boundary.
+Phase 1 defines a caller-supplied topology snapshot boundary.
 
 A discovery component obtains external cluster information and converts it into the public topology representation. The delivery library consumes that representation without needing to know how it was obtained.
 

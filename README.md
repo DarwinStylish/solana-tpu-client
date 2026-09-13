@@ -38,9 +38,9 @@ The current prototype contract is intentionally narrow:
 
 The project is pre-release. The current layout is tested explicitly to detect accidental ABI changes, but it is not yet declared a permanent version-1 ABI.
 
-## Delivery ABI Vocabulary
+## Delivery API and Topology State
 
-`include/solana/delivery.h` now defines the structural vocabulary for the future transaction-delivery API.
+`include/solana/delivery.h` defines the Phase 1 transaction-delivery ABI vocabulary and the current client/topology-state boundary.
 
 It currently provides:
 
@@ -53,7 +53,12 @@ It currently provides:
 - a minimal extensible submission-options structure;
 - a request/attempt/observation event envelope.
 
-The delivery boundary now also builds `build/libsolana_delivery.a` and exposes `solana_delivery_topology_validate`.
+The delivery boundary builds `build/libsolana_delivery.a` and currently exposes:
+
+- `solana_delivery_topology_validate`;
+- `solana_delivery_client_create`;
+- `solana_delivery_client_destroy`;
+- `solana_delivery_client_install_topology`.
 
 The validator checks the structural integrity of caller-supplied topology views, including:
 
@@ -70,9 +75,15 @@ The validator checks the structural integrity of caller-supplied topology views,
 
 Topology validation is pure and does not install topology, perform discovery, select routes, open connections, submit transactions, or report landing.
 
-An empty topology is structurally valid. Route availability, snapshot ordering, freshness, and routing policy remain separate concerns.
+Topology installation uses copy-on-install ownership. On success, the client owns normalized copies of the ABI prefixes understood by this implementation and retains no caller array pointers. Caller snapshot storage may therefore be reused after the installation call returns success.
 
-No client creation, topology installation, submission, polling, routing, transport, or observation behavior is implemented.
+The first installed snapshot may use any generation value. Later installations must use a strictly greater generation; equal or lower generations return `SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE`. Each successful installation records a local monotonic receipt time.
+
+Installation is transactional. Structural rejection, allocation failure, or monotonic-clock failure leaves the previously installed snapshot unchanged.
+
+An empty topology is structurally valid and may be installed, but that does not imply that a usable route exists.
+
+Transaction submission, polling, discovery, routing, connection management, transport, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 
