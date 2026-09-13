@@ -89,6 +89,12 @@ The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU
 - [ADR-0004: Delivery Status Semantics](docs/architecture/0004-delivery-status-semantics.md)
 - [ADR-0005: Separate Discovery, Routing, Transport, and Observation](docs/architecture/0005-topology-routing-transport-separation.md)
 
+## Technical Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for the engineering phases of the transaction-delivery architecture.
+
+The roadmap describes target work and does not imply that unimplemented transport capabilities exist in the current release.
+
 ## License
 
 Apache License 2.0.
