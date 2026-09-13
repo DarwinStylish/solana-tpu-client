@@ -130,6 +130,8 @@ Phase 1 must not imply thread safety merely because the underlying implementatio
 
 At minimum, creation and destruction require exclusive ownership of the handle.
 
+Phase 1 topology installation also requires exclusive ownership of the handle. No concurrent installation, submission, polling, or destruction semantics are implied until they are explicitly implemented and tested.
+
 Concurrent submission or polling support must be explicitly tested before being declared part of the contract.
 
 ## Error Model

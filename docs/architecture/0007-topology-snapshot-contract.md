@@ -32,6 +32,31 @@ On successful installation, the implementation must internalize the data it requ
 
 The simplest Phase 1 contract is copy-on-install: caller-provided snapshot memory may be released or reused after the update call returns.
 
+Installation is transactional:
+
+1. validate the complete caller-supplied snapshot;
+2. construct a complete temporary owned snapshot;
+3. obtain the local monotonic receipt time;
+4. replace the currently installed snapshot only after all preceding steps succeed.
+
+Validation failure, allocation failure, copy failure, or failure to obtain the required monotonic receipt time must leave the previously installed snapshot unchanged.
+
+Client creation, client destruction, and topology installation initially require exclusive access to the client handle. This contract does not yet declare concurrent access to one client safe.
+
+## Owned Representation
+
+The implementation internalizes only the ABI prefix it understands for each topology record.
+
+Caller records may use larger `struct_size` values and larger array strides because compatible ABI revisions may append fields. An implementation compiled against an older compatible prefix:
+
+- validates the caller element against the supplied stride;
+- copies the fields in the ABI prefix it understands;
+- does not interpret unknown appended bytes;
+- does not require unknown appended bytes to remain alive after installation;
+- may normalize its owned arrays to the implementation-known native element size and stride.
+
+This keeps internal topology state independent from caller memory without assigning semantics to ABI fields the implementation does not understand.
+
 ## Array Layout and Extensibility
 
 Topology arrays carry an explicit byte stride in addition to their pointer and element count.
@@ -55,7 +80,11 @@ Each installed snapshot receives or carries a monotonically comparable generatio
 
 Generation identifies ordering of topology updates within one client instance. It is not a Solana slot and must not be interpreted as one.
 
-The implementation must reject replacement of a newer installed snapshot with an older generation unless an explicit reset operation is defined.
+The first snapshot installed into a client may carry any `uint64_t` generation value, including zero.
+
+After a snapshot has been installed, a replacement must carry a strictly greater generation. An equal or lower generation is stale and must be rejected with `SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE`.
+
+No generation reset operation is defined in Phase 1.
 
 ## Freshness
 
