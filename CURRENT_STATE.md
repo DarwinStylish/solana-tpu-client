@@ -22,7 +22,7 @@ The public repository no longer requires private HFT engine headers or types to 
 
 The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
 
-The delivery library currently implements one callable operation: pure structural validation of caller-supplied topology views. It does not implement topology installation, routing, transaction submission, transport, polling, or observation.
+The delivery library currently implements structural topology validation, opaque client creation/destruction, and transactional copy-on-install topology ownership. It does not implement routing, transaction submission, transport, polling, discovery, or observation.
 
 ## Public/Private Boundary
 
@@ -53,9 +53,9 @@ The local receiver returns zero after caller-requested shutdown. Operational fai
 
 The API is pre-release and is not yet declared a permanent version-1 ABI.
 
-## Delivery ABI Vocabulary
+## Delivery API and Topology State
 
-The delivery header defines structural types without declaring callable delivery functions.
+The delivery header defines the Phase 1 ABI vocabulary together with callable topology validation and client/topology-state operations.
 
 Its current contracts include:
 
@@ -68,9 +68,11 @@ Its current contracts include:
 - opaque request and attempt identifiers;
 - a 64-byte delivery-event envelope whose concrete event codes remain intentionally unfrozen.
 
-The topology aggregate contains native process pointers to caller-owned arrays. No topology installation function exists yet, so no runtime copy or ownership-transfer behavior is implemented.
+The topology aggregate contains native process pointers to caller-owned arrays. `solana_delivery_client_install_topology` validates and internalizes the required data before returning success, after which the caller may reuse or release the supplied snapshot storage.
 
-Topology arrays carry explicit byte strides so append-only record extensions do not require consumers to assume their own `sizeof(element_type)` as the caller array layout.
+The owned representation retains only the ABI prefixes understood by this implementation and normalizes its internal arrays to implementation-known element sizes. Unknown compatible caller extensions are not interpreted or retained.
+
+Topology arrays at the caller boundary carry explicit byte strides so append-only record extensions do not require consumers to assume their own `sizeof(element_type)` as the caller array layout.
 
 `solana_delivery_topology_validate` currently validates:
 
@@ -87,9 +89,20 @@ Topology arrays carry explicit byte strides so append-only record extensions do 
 - leader validator references;
 - ordered leader slot ranges.
 
-The validator is intentionally structural. It does not decide whether the topology contains a usable route, whether a snapshot is newer than another snapshot, or whether topology is fresh enough for a submission policy.
+The validator is intentionally structural. It does not decide whether the topology contains a usable route or whether topology is fresh enough for a submission policy.
 
-An empty topology is structurally valid.
+Topology installation adds stateful ordering semantics:
+
+- the first installed snapshot may use any `uint64_t` generation, including zero;
+- every later installation must use a strictly greater generation;
+- equal or lower generations return `SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE`;
+- successful installation records a local monotonic receipt time;
+- validation, allocation/copy, and receipt-time acquisition complete before the installed snapshot is replaced;
+- failure during any of those stages leaves the previously installed snapshot unchanged.
+
+Tests exercise deep-copy ownership, caller-buffer independence, compatible extended-stride normalization, stale-generation rejection, allocation failure at each copy stage, and monotonic-clock failure. Sanitizer runs cover temporary-state cleanup on those failure paths.
+
+An empty topology is structurally valid and may be installed. It does not imply that a route is available.
 
 ## Not Implemented
 

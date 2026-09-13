@@ -19,13 +19,14 @@ TEST_CPP = $(BUILD_DIR)/test_cpp_linkage
 TEST_DELIVERY_ABI = $(BUILD_DIR)/test_delivery_abi
 TEST_DELIVERY_CPP = $(BUILD_DIR)/test_delivery_cpp
 TEST_DELIVERY_TOPOLOGY = $(BUILD_DIR)/test_delivery_topology
+TEST_DELIVERY_CLIENT = $(BUILD_DIR)/test_delivery_client
 BENCHMARK = $(BUILD_DIR)/benchmark
 FUZZ_DECODE = $(BUILD_DIR)/fuzz_decode
 FUZZ_TOPOLOGY = $(BUILD_DIR)/fuzz_topology
 
 .PHONY: all test bench fuzz-smoke clean
 
-all: $(LIBRARY) $(DELIVERY_LIBRARY) $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY) $(BENCHMARK)
+all: $(LIBRARY) $(DELIVERY_LIBRARY) $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY) $(TEST_DELIVERY_CLIENT) $(BENCHMARK)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -36,7 +37,7 @@ $(LIB_OBJECT): src/solana_ingress.c include/solana/ingress.h | $(BUILD_DIR)
 $(LIBRARY): $(LIB_OBJECT)
 	$(AR) rcs $@ $^
 
-$(DELIVERY_OBJECT): src/solana_delivery.c include/solana/delivery.h | $(BUILD_DIR)
+$(DELIVERY_OBJECT): src/solana_delivery.c src/solana_delivery_internal.h include/solana/delivery.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(DELIVERY_LIBRARY): $(DELIVERY_OBJECT)
@@ -60,6 +61,9 @@ $(TEST_DELIVERY_CPP): tests/test_delivery_cpp.cpp $(DELIVERY_LIBRARY)
 $(TEST_DELIVERY_TOPOLOGY): tests/test_delivery_topology.c $(DELIVERY_LIBRARY)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(DELIVERY_LIBRARY) -o $@
 
+$(TEST_DELIVERY_CLIENT): tests/test_delivery_client.c $(DELIVERY_LIBRARY) src/solana_delivery_internal.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -Isrc $< $(DELIVERY_LIBRARY) -o $@
+
 $(FUZZ_DECODE): tests/fuzz_decode.c src/solana_ingress.c include/solana/ingress.h | $(BUILD_DIR)
 	$(FUZZ_CC) $(CPPFLAGS) $(FUZZ_CFLAGS) $(INCLUDES) tests/fuzz_decode.c src/solana_ingress.c -o $@
 
@@ -69,13 +73,14 @@ $(FUZZ_TOPOLOGY): tests/fuzz_topology.c src/solana_delivery.c include/solana/del
 $(BENCHMARK): tests/benchmark.c $(LIBRARY)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
 
-test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY)
+test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY) $(TEST_DELIVERY_CLIENT)
 	@$(TEST_INGRESS)
 	@$(TEST_PROPERTIES)
 	@$(TEST_CPP)
 	@$(TEST_DELIVERY_ABI)
 	@$(TEST_DELIVERY_CPP)
 	@$(TEST_DELIVERY_TOPOLOGY)
+	@$(TEST_DELIVERY_CLIENT)
 
 bench: $(BENCHMARK)
 	@$(BENCHMARK)

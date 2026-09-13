@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 topology design.
 
-No topology API described by this record is implemented yet.
+Structural topology validation and copy-on-install client state are implemented. Discovery, routing policy, topology-age policy, transaction submission, and transport remain unimplemented.
 
 ## Context
 
@@ -16,7 +16,7 @@ The delivery core therefore needs a transport-independent input representation f
 
 ## Decision
 
-Phase 1 will define a caller-supplied topology snapshot boundary.
+Phase 1 defines a caller-supplied topology snapshot boundary.
 
 A discovery component obtains external cluster information and converts it into the public topology representation. The delivery library consumes that representation without needing to know how it was obtained.
 
@@ -31,6 +31,31 @@ It must not require the route planner to combine independently changing caller-o
 On successful installation, the implementation must internalize the data it requires or otherwise establish an explicit ownership contract before returning.
 
 The simplest Phase 1 contract is copy-on-install: caller-provided snapshot memory may be released or reused after the update call returns.
+
+Installation is transactional:
+
+1. validate the complete caller-supplied snapshot;
+2. construct a complete temporary owned snapshot;
+3. obtain the local monotonic receipt time;
+4. replace the currently installed snapshot only after all preceding steps succeed.
+
+Validation failure, allocation failure, copy failure, or failure to obtain the required monotonic receipt time must leave the previously installed snapshot unchanged.
+
+Client creation, client destruction, and topology installation initially require exclusive access to the client handle. This contract does not yet declare concurrent access to one client safe.
+
+## Owned Representation
+
+The implementation internalizes only the ABI prefix it understands for each topology record.
+
+Caller records may use larger `struct_size` values and larger array strides because compatible ABI revisions may append fields. An implementation compiled against an older compatible prefix:
+
+- validates the caller element against the supplied stride;
+- copies the fields in the ABI prefix it understands;
+- does not interpret unknown appended bytes;
+- does not require unknown appended bytes to remain alive after installation;
+- may normalize its owned arrays to the implementation-known native element size and stride.
+
+This keeps internal topology state independent from caller memory without assigning semantics to ABI fields the implementation does not understand.
 
 ## Array Layout and Extensibility
 
@@ -55,7 +80,11 @@ Each installed snapshot receives or carries a monotonically comparable generatio
 
 Generation identifies ordering of topology updates within one client instance. It is not a Solana slot and must not be interpreted as one.
 
-The implementation must reject replacement of a newer installed snapshot with an older generation unless an explicit reset operation is defined.
+The first snapshot installed into a client may carry any `uint64_t` generation value, including zero.
+
+After a snapshot has been installed, a replacement must carry a strictly greater generation. An equal or lower generation is stale and must be rejected with `SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE`.
+
+No generation reset operation is defined in Phase 1.
 
 ## Freshness
 

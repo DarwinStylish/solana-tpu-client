@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 API design.
 
-No delivery API described by this record is implemented yet.
+The opaque client lifecycle and caller-supplied topology installation portions are implemented. Transaction submission, event polling, routing, transport, and observation behavior described by this record remain unimplemented.
 
 ## Context
 
@@ -16,7 +16,7 @@ The existing `solana/ingress.h` interface belongs to the inbound decoder prototy
 
 ## Decision
 
-Introduce a separate public delivery API under a future `solana/delivery.h` header.
+Define the public delivery API under `solana/delivery.h`.
 
 The initial delivery ABI will use:
 
@@ -129,6 +129,8 @@ The public contract must document which functions may be called concurrently on 
 Phase 1 must not imply thread safety merely because the underlying implementation uses atomics or internal synchronization.
 
 At minimum, creation and destruction require exclusive ownership of the handle.
+
+Phase 1 topology installation also requires exclusive ownership of the handle. No concurrent installation, submission, polling, or destruction semantics are implied until they are explicitly implemented and tested.
 
 Concurrent submission or polling support must be explicitly tested before being declared part of the contract.
 
