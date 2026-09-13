@@ -21,6 +21,7 @@ TEST_DELIVERY_CPP = $(BUILD_DIR)/test_delivery_cpp
 TEST_DELIVERY_TOPOLOGY = $(BUILD_DIR)/test_delivery_topology
 BENCHMARK = $(BUILD_DIR)/benchmark
 FUZZ_DECODE = $(BUILD_DIR)/fuzz_decode
+FUZZ_TOPOLOGY = $(BUILD_DIR)/fuzz_topology
 
 .PHONY: all test bench fuzz-smoke clean
 
@@ -62,6 +63,9 @@ $(TEST_DELIVERY_TOPOLOGY): tests/test_delivery_topology.c $(DELIVERY_LIBRARY)
 $(FUZZ_DECODE): tests/fuzz_decode.c src/solana_ingress.c include/solana/ingress.h | $(BUILD_DIR)
 	$(FUZZ_CC) $(CPPFLAGS) $(FUZZ_CFLAGS) $(INCLUDES) tests/fuzz_decode.c src/solana_ingress.c -o $@
 
+$(FUZZ_TOPOLOGY): tests/fuzz_topology.c src/solana_delivery.c include/solana/delivery.h | $(BUILD_DIR)
+	$(FUZZ_CC) $(CPPFLAGS) $(FUZZ_CFLAGS) $(INCLUDES) tests/fuzz_topology.c src/solana_delivery.c -o $@
+
 $(BENCHMARK): tests/benchmark.c $(LIBRARY)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
 
@@ -76,8 +80,9 @@ test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST
 bench: $(BENCHMARK)
 	@$(BENCHMARK)
 
-fuzz-smoke: $(FUZZ_DECODE)
+fuzz-smoke: $(FUZZ_DECODE) $(FUZZ_TOPOLOGY)
 	@$(FUZZ_DECODE) -seed=1 -runs=20000 -max_len=65
+	@$(FUZZ_TOPOLOGY) -seed=1 -runs=20000 -max_len=512
 
 clean:
 	rm -rf $(BUILD_DIR)
