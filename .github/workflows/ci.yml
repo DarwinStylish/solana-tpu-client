@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build / ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - gcc
+          - clang
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build
+        run: make CC=${{ matrix.compiler }} all
+
+      - name: Test
+        run: make CC=${{ matrix.compiler }} test
+
+      - name: Diff check
+        run: git diff --check
+
+  sanitizer:
+    name: sanitizer / ${{ matrix.sanitizer }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer:
+          - address
+          - undefined
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build and test with sanitizer
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          make clean
+          CFLAGS="-O1 -g -Wall -Wextra -Werror -std=c11 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer" make CC=clang test
+
+  repository-isolation:
+    name: repository-isolation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Verify clean checkout
+        run: |
+          if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+            git status --short --untracked-files=all
+            exit 1
+          fi
+
+      - name: Reject private build dependencies
+        run: |
+          if grep -RInE "engine/private|hft_core|ring_buffer_t|fixed_t|VENUE_SOLANA|adapter_solana|#include[[:space:]]+\"(types|ring_buffer|fixed_math|borsh_offsets)\\.h\"" Makefile include src tests --exclude-dir=build; then
+            echo "Private build dependency detected"
+            exit 1
+          fi
+
+      - name: Build from tracked archive
+        run: |
+          tmpdir="$(mktemp -d)"
+          if git archive HEAD | tar -x -C "$tmpdir" &&
+             make -C "$tmpdir" CC=gcc all &&
+             make -C "$tmpdir" CC=gcc test; then
+            rm -rf "$tmpdir"
+          else
+            status=$?
+            rm -rf "$tmpdir"
+            exit "$status"
+          fi
+
+      - name: Verify repository remains clean
+        run: |
+          if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+            git status --short --untracked-files=all
+            exit 1
+          fi
