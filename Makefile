@@ -54,7 +54,7 @@ bench: $(BENCHMARK)
 	@$(BENCHMARK)
 
 fuzz-smoke: $(FUZZ_DECODE)
-	@$(FUZZ_DECODE) -seed=1 -runs=20000
+	@$(FUZZ_DECODE) -seed=1 -runs=20000 -max_len=65
 
 clean:
 	rm -rf $(BUILD_DIR)

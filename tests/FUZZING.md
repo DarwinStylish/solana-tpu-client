@@ -16,7 +16,7 @@ Run the bounded deterministic smoke test with:
 make fuzz-smoke
 ```
 
-The smoke target uses a fixed seed and run count for reproducibility. It is a CI guard, not evidence that the decoder has been exhaustively proven correct.
+The smoke target uses a fixed seed, run count, and 65-byte maximum input length so each CI invocation is bounded and repeatable within a given toolchain. It is a CI guard, not evidence that the decoder has been exhaustively proven correct.
 
 For longer local exploration, build `build/fuzz_decode` and invoke it with additional libFuzzer options or a corpus directory.
 

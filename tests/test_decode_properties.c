@@ -24,6 +24,25 @@ static void test_lengths(void) {
             assert(!decoded);
         }
     }
+
+    const size_t rejected_lengths[] = {
+        66U,
+        255U,
+        4096U,
+        SIZE_MAX,
+    };
+
+    for (size_t i = 0;
+         i < sizeof(rejected_lengths) / sizeof(rejected_lengths[0]);
+         ++i) {
+        solana_ingress_event_t event;
+        assert(!solana_ingress_decode(
+            buffer,
+            rejected_lengths[i],
+            UINT64_C(7),
+            &event
+        ));
+    }
 }
 
 static void test_side_domain(void) {
