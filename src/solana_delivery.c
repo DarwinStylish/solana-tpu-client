@@ -622,9 +622,13 @@ fail:
     return status;
 }
 
-static solana_delivery_status_t monotonic_time_ns(
+static solana_delivery_status_t
+system_monotonic_time_ns(
+    void *context,
     uint64_t *out_time_ns
 ) {
+    (void)context;
+
     if (out_time_ns == NULL) {
         return SOLANA_DELIVERY_STATUS_INTERNAL_ERROR;
     }
@@ -651,11 +655,14 @@ static solana_delivery_status_t monotonic_time_ns(
 }
 
 solana_delivery_status_t
-solana_delivery_client_create_with_allocator(
+solana_delivery_client_create_with_dependencies(
     const solana_delivery_allocator_t *allocator,
+    solana_delivery_monotonic_time_fn monotonic_time_fn,
+    void *monotonic_time_context,
     solana_delivery_client_t **out_client
 ) {
     if (!allocator_is_valid(allocator) ||
+        monotonic_time_fn == NULL ||
         out_client == NULL) {
         return SOLANA_DELIVERY_STATUS_INVALID_ARGUMENT;
     }
@@ -674,9 +681,25 @@ solana_delivery_client_create_with_allocator(
     }
 
     client->allocator = *allocator;
+    client->monotonic_time_fn = monotonic_time_fn;
+    client->monotonic_time_context =
+        monotonic_time_context;
 
     *out_client = client;
     return SOLANA_DELIVERY_STATUS_OK;
+}
+
+solana_delivery_status_t
+solana_delivery_client_create_with_allocator(
+    const solana_delivery_allocator_t *allocator,
+    solana_delivery_client_t **out_client
+) {
+    return solana_delivery_client_create_with_dependencies(
+        allocator,
+        system_monotonic_time_ns,
+        NULL,
+        out_client
+    );
 }
 
 solana_delivery_status_t solana_delivery_client_create(
@@ -741,7 +764,8 @@ solana_delivery_status_t solana_delivery_client_install_topology(
         return status;
     }
 
-    status = monotonic_time_ns(
+    status = client->monotonic_time_fn(
+        client->monotonic_time_context,
         &replacement.received_monotonic_ns
     );
     if (status != SOLANA_DELIVERY_STATUS_OK) {

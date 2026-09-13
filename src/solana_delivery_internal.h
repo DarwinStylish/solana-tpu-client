@@ -27,6 +27,12 @@ typedef struct {
     void *context;
 } solana_delivery_allocator_t;
 
+typedef solana_delivery_status_t
+(*solana_delivery_monotonic_time_fn)(
+    void *context,
+    uint64_t *out_time_ns
+);
+
 typedef struct {
     solana_delivery_topology_t view;
     solana_delivery_validator_t *validators;
@@ -38,9 +44,19 @@ typedef struct {
 
 struct solana_delivery_client {
     solana_delivery_allocator_t allocator;
+    solana_delivery_monotonic_time_fn monotonic_time_fn;
+    void *monotonic_time_context;
     bool has_topology;
     solana_delivery_owned_topology_t topology;
 };
+
+solana_delivery_status_t
+solana_delivery_client_create_with_dependencies(
+    const solana_delivery_allocator_t *allocator,
+    solana_delivery_monotonic_time_fn monotonic_time_fn,
+    void *monotonic_time_context,
+    solana_delivery_client_t **out_client
+);
 
 solana_delivery_status_t
 solana_delivery_client_create_with_allocator(
