@@ -79,4 +79,21 @@ solana_delivery_client_resolve_slot(
     size_t *out_count
 );
 
+typedef struct {
+    uint32_t leader_index;
+    uint32_t validator_index;
+    uint32_t endpoint_index;
+} solana_delivery_route_target_t;
+
+solana_delivery_status_t
+solana_delivery_plan_routes(
+    const solana_delivery_topology_candidate_t *candidates,
+    size_t candidate_count,
+    size_t target_limit,
+    solana_delivery_route_target_t *targets,
+    size_t capacity,
+    size_t *out_target_count,
+    size_t *out_unique_target_count
+);
+
 #endif

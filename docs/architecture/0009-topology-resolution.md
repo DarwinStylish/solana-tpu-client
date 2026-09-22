@@ -116,6 +116,6 @@ Those behaviors belong to later routing, transport, and observation layers.
 
 Synthetic topology tests can establish exact slot-to-candidate behavior before routing policy exists.
 
-The route planner can later consume a deterministic candidate sequence while remaining responsible for policy decisions such as deduplication, ranking, fanout, and retry.
+The route planner now consumes the deterministic candidate sequence and implements first-occurrence deduplication plus bounded prefix selection. Adaptive ranking, plausible-leader-frontier expansion, transport-aware policy, and retry remain separate later work.
 
 No new public ABI commitment is required by this step.

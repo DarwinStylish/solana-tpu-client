@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the target architecture.
 
-The current delivery library implements owned topology state and deterministic internal topology resolution. Discovery, routing policy, connection management, transaction submission, transport, and observation described by this record remain unimplemented.
+The current delivery library implements owned topology state, deterministic internal topology resolution, and an initial deterministic bounded route-planning policy over resolved candidates. Discovery, topology freshness policy, adaptive routing, retries, connection management, transaction submission, transport, and observation described by this record remain unimplemented.
 
 ## Context
 

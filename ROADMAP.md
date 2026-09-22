@@ -14,7 +14,7 @@ The roadmap deliberately excludes wallet functionality, transaction construction
 
 Define and implement the public transaction-delivery API without implementing production TPU transport.
 
-Current progress includes the delivery ABI vocabulary, extensible topology-array layout, pure topology structural validation, topology fuzz coverage, opaque client lifecycle, transactional copy-on-install topology ownership, strict snapshot-generation ordering, local monotonic receipt-time tracking, and deterministic internal slot-to-topology-candidate resolution.
+Current progress includes the delivery ABI vocabulary, extensible topology-array layout, pure topology structural validation, topology fuzz coverage, opaque client lifecycle, transactional copy-on-install topology ownership, strict snapshot-generation ordering, local monotonic receipt-time tracking, deterministic internal slot-to-topology-candidate resolution, and deterministic bounded route planning over resolved candidates.
 
 Expected work:
 
@@ -26,7 +26,7 @@ Expected work:
 - discovery-provider interface
 - immutable topology snapshot representation
 - validator identity separated from transport endpoint identity
-- topology freshness semantics
+- topology freshness and submission-policy semantics
 - deterministic route-planner tests using synthetic topology
 
 Exit criteria:
