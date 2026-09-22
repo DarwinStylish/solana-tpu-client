@@ -43,8 +43,32 @@ _Static_assert(sizeof(solana_delivery_validator_endpoint_t) == 16,
                "validator endpoint ABI changed");
 _Static_assert(sizeof(solana_delivery_leader_t) == 32,
                "leader ABI changed");
-_Static_assert(sizeof(solana_delivery_submit_options_t) == 8,
+_Static_assert(sizeof(solana_delivery_submit_options_t) == 24,
                "submit options ABI changed");
+_Static_assert(
+    offsetof(solana_delivery_submit_options_t, struct_size) == 0,
+    "submit options struct_size offset changed"
+);
+_Static_assert(
+    offsetof(solana_delivery_submit_options_t, flags) == 4,
+    "submit options flags offset changed"
+);
+_Static_assert(
+    offsetof(solana_delivery_submit_options_t, max_topology_age_ns) == 8,
+    "submit options topology age offset changed"
+);
+_Static_assert(
+    offsetof(solana_delivery_submit_options_t, target_limit) == 16,
+    "submit options target limit offset changed"
+);
+_Static_assert(
+    offsetof(solana_delivery_submit_options_t, reserved0) == 20,
+    "submit options reserved offset changed"
+);
+_Static_assert(
+    sizeof(((solana_delivery_submit_options_t *)0)->target_limit) == 4,
+    "submit options target limit width changed"
+);
 
 _Static_assert(offsetof(solana_delivery_topology_t, struct_size) == 0,
                "topology struct_size offset changed");
