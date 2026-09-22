@@ -15,6 +15,7 @@ DELIVERY_LIBRARY = $(BUILD_DIR)/libsolana_delivery.a
 DELIVERY_OBJECT = $(BUILD_DIR)/solana_delivery.o
 DELIVERY_RESOLUTION_OBJECT = $(BUILD_DIR)/solana_delivery_resolution.o
 DELIVERY_ROUTE_OBJECT = $(BUILD_DIR)/solana_delivery_route.o
+DELIVERY_ADMISSION_OBJECT = $(BUILD_DIR)/solana_delivery_admission.o
 TEST_INGRESS = $(BUILD_DIR)/test_ingress
 TEST_PROPERTIES = $(BUILD_DIR)/test_decode_properties
 TEST_CPP = $(BUILD_DIR)/test_cpp_linkage
@@ -24,13 +25,14 @@ TEST_DELIVERY_TOPOLOGY = $(BUILD_DIR)/test_delivery_topology
 TEST_DELIVERY_CLIENT = $(BUILD_DIR)/test_delivery_client
 TEST_DELIVERY_RESOLUTION = $(BUILD_DIR)/test_delivery_resolution
 TEST_DELIVERY_ROUTE = $(BUILD_DIR)/test_delivery_route
+TEST_DELIVERY_ADMISSION = $(BUILD_DIR)/test_delivery_admission
 BENCHMARK = $(BUILD_DIR)/benchmark
 FUZZ_DECODE = $(BUILD_DIR)/fuzz_decode
 FUZZ_TOPOLOGY = $(BUILD_DIR)/fuzz_topology
 
 .PHONY: all test bench fuzz-smoke clean
 
-all: $(LIBRARY) $(DELIVERY_LIBRARY) $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY) $(TEST_DELIVERY_CLIENT) $(TEST_DELIVERY_RESOLUTION) $(TEST_DELIVERY_ROUTE) $(BENCHMARK)
+all: $(LIBRARY) $(DELIVERY_LIBRARY) $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY) $(TEST_DELIVERY_CLIENT) $(TEST_DELIVERY_RESOLUTION) $(TEST_DELIVERY_ROUTE) $(TEST_DELIVERY_ADMISSION) $(BENCHMARK)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -50,7 +52,10 @@ $(DELIVERY_RESOLUTION_OBJECT): src/solana_delivery_resolution.c src/solana_deliv
 $(DELIVERY_ROUTE_OBJECT): src/solana_delivery_route.c src/solana_delivery_internal.h include/solana/delivery.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -Isrc -c $< -o $@
 
-$(DELIVERY_LIBRARY): $(DELIVERY_OBJECT) $(DELIVERY_RESOLUTION_OBJECT) $(DELIVERY_ROUTE_OBJECT)
+$(DELIVERY_ADMISSION_OBJECT): src/solana_delivery_admission.c src/solana_delivery_internal.h include/solana/delivery.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -Isrc -c $< -o $@
+
+$(DELIVERY_LIBRARY): $(DELIVERY_OBJECT) $(DELIVERY_RESOLUTION_OBJECT) $(DELIVERY_ROUTE_OBJECT) $(DELIVERY_ADMISSION_OBJECT)
 	$(AR) rcs $@ $^
 
 $(TEST_INGRESS): tests/test_ingress.c $(LIBRARY)
@@ -80,6 +85,9 @@ $(TEST_DELIVERY_RESOLUTION): tests/test_delivery_resolution.c $(DELIVERY_LIBRARY
 $(TEST_DELIVERY_ROUTE): tests/test_delivery_route.c $(DELIVERY_LIBRARY) src/solana_delivery_internal.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -Isrc $< $(DELIVERY_LIBRARY) -o $@
 
+$(TEST_DELIVERY_ADMISSION): tests/test_delivery_admission.c $(DELIVERY_LIBRARY) src/solana_delivery_internal.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -Isrc $< $(DELIVERY_LIBRARY) -o $@
+
 $(FUZZ_DECODE): tests/fuzz_decode.c src/solana_ingress.c include/solana/ingress.h | $(BUILD_DIR)
 	$(FUZZ_CC) $(CPPFLAGS) $(FUZZ_CFLAGS) $(INCLUDES) tests/fuzz_decode.c src/solana_ingress.c -o $@
 
@@ -89,7 +97,7 @@ $(FUZZ_TOPOLOGY): tests/fuzz_topology.c src/solana_delivery.c include/solana/del
 $(BENCHMARK): tests/benchmark.c $(LIBRARY)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $< $(LIBRARY) -o $@
 
-test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY) $(TEST_DELIVERY_CLIENT) $(TEST_DELIVERY_RESOLUTION) $(TEST_DELIVERY_ROUTE)
+test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST_DELIVERY_CPP) $(TEST_DELIVERY_TOPOLOGY) $(TEST_DELIVERY_CLIENT) $(TEST_DELIVERY_RESOLUTION) $(TEST_DELIVERY_ROUTE) $(TEST_DELIVERY_ADMISSION)
 	@$(TEST_INGRESS)
 	@$(TEST_PROPERTIES)
 	@$(TEST_CPP)
@@ -99,6 +107,7 @@ test: $(TEST_INGRESS) $(TEST_PROPERTIES) $(TEST_CPP) $(TEST_DELIVERY_ABI) $(TEST
 	@$(TEST_DELIVERY_CLIENT)
 	@$(TEST_DELIVERY_RESOLUTION)
 	@$(TEST_DELIVERY_ROUTE)
+	@$(TEST_DELIVERY_ADMISSION)
 
 bench: $(BENCHMARK)
 	@$(BENCHMARK)

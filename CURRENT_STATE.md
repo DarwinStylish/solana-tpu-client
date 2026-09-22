@@ -22,7 +22,7 @@ The public repository no longer requires private HFT engine headers or types to 
 
 The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
 
-The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, and an internal deterministic bounded route planner. It does not implement adaptive routing, topology freshness policy, transaction submission, transport, polling, discovery, retries, or observation.
+The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, an internal deterministic bounded route planner, and internal submission-policy evaluation for monotonic topology freshness. It does not implement adaptive routing, transaction submission, transport, polling, discovery, retries, or observation.
 
 ## Public/Private Boundary
 
@@ -115,6 +115,8 @@ The internal route planner consumes only resolved candidates. It deduplicates by
 The planner reports both the complete unique-target count and the bounded selected-target count. Insufficient output capacity is reported atomically with `SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED` before any target output is written.
 
 The planner performs no topology traversal, freshness evaluation, adaptive ranking, retry scheduling, connection management, transport work, allocation, or network activity. Its types and functions remain internal and do not add a public routing ABI.
+
+Submission-policy evaluation is a separate internal stage. It validates a positive maximum topology age and target limit, requires an installed topology, samples the client monotonic clock once, accepts topology whose age is at most the configured maximum, returns `SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE` when that age is exceeded, and treats backward movement within the monotonic clock domain as an internal error. Generation and `current_slot` are not used as freshness clocks.
 
 ## Not Implemented
 
