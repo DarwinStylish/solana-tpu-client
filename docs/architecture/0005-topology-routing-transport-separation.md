@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the target architecture.
 
-The functionality described by this record is not implemented by the current prototype.
+The current delivery library implements owned topology state and deterministic internal topology resolution. Discovery, routing policy, connection management, transaction submission, transport, and observation described by this record remain unimplemented.
 
 ## Context
 

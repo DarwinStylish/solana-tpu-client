@@ -83,7 +83,9 @@ Installation is transactional. Structural rejection, allocation failure, or mono
 
 An empty topology is structurally valid and may be installed, but that does not imply that a usable route exists.
 
-Transaction submission, polling, discovery, routing, connection management, transport, and observation behavior are not implemented.
+The delivery library also has an internal deterministic topology resolver. Given an installed snapshot and requested slot, it resolves matching leader records through validator-to-endpoint associations while preserving source order. It performs no ranking, deduplication, freshness policy, fanout, retries, allocation, or network activity. This resolver is not part of the public C ABI.
+
+Transaction submission, polling, discovery, routing policy, connection management, transport, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 
@@ -138,6 +140,7 @@ The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU
 - [ADR-0006: Stable C ABI for Transaction Delivery](docs/architecture/0006-stable-delivery-c-abi.md)
 - [ADR-0007: Topology Snapshot Contract](docs/architecture/0007-topology-snapshot-contract.md)
 - [ADR-0008: Request and Attempt Event Model](docs/architecture/0008-request-attempt-event-model.md)
+- [ADR-0009: Deterministic Topology Resolution](docs/architecture/0009-topology-resolution.md)
 
 ## Technical Roadmap
 

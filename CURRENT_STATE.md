@@ -22,7 +22,7 @@ The public repository no longer requires private HFT engine headers or types to 
 
 The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
 
-The delivery library currently implements structural topology validation, opaque client creation/destruction, and transactional copy-on-install topology ownership. It does not implement routing, transaction submission, transport, polling, discovery, or observation.
+The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, and deterministic internal slot-to-topology-candidate resolution. It does not implement routing policy, transaction submission, transport, polling, discovery, or observation.
 
 ## Public/Private Boundary
 
@@ -103,6 +103,12 @@ Topology installation adds stateful ordering semantics:
 Tests exercise deep-copy ownership, caller-buffer independence, compatible extended-stride normalization, stale-generation rejection, allocation failure at each copy stage, and monotonic-clock failure. Sanitizer runs cover temporary-state cleanup on those failure paths.
 
 An empty topology is structurally valid and may be installed. It does not imply that a route is available.
+
+The internal topology resolver consumes only installed library-owned topology. For a requested slot it preserves leader-array order and, within each matching leader, validator-to-endpoint association order. It produces leader, validator, and endpoint indices without ranking, deduplication, fanout selection, freshness policy, retries, allocation, or network activity.
+
+Resolution reports `SOLANA_DELIVERY_STATUS_TOPOLOGY_UNAVAILABLE` when no topology is installed, no leader range contains the requested slot, or matching leaders yield no associated endpoints. Insufficient caller-provided candidate capacity is reported atomically with `SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED` and the required count.
+
+This resolver is internal implementation vocabulary and does not add a public routing ABI.
 
 ## Not Implemented
 

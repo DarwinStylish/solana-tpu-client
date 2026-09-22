@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 topology design.
 
-Structural topology validation and copy-on-install client state are implemented. Discovery, routing policy, topology-age policy, transaction submission, and transport remain unimplemented.
+Structural topology validation, copy-on-install client state, and deterministic internal topology resolution are implemented. Discovery, routing policy, topology-age policy, transaction submission, and transport remain unimplemented.
 
 ## Context
 
