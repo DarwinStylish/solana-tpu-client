@@ -40,7 +40,7 @@ The project is pre-release. The current layout is tested explicitly to detect ac
 
 ## Delivery API and Topology State
 
-`include/solana/delivery.h` defines the Phase 1 transaction-delivery ABI vocabulary and the current client/topology-state boundary.
+`include/solana/delivery.h` defines the Phase 1 transaction-delivery ABI vocabulary and the current client/topology-state and local-submission boundary.
 
 It currently provides:
 
@@ -50,7 +50,7 @@ It currently provides:
 - validator identity and endpoint representations;
 - explicit validator-to-endpoint associations;
 - leader and topology snapshot records;
-- a minimal extensible submission-options structure;
+- an extensible submission-options structure carrying maximum topology age and bounded target policy;
 - a request/attempt/observation event envelope.
 
 The delivery boundary builds `build/libsolana_delivery.a` and currently exposes:
@@ -58,7 +58,8 @@ The delivery boundary builds `build/libsolana_delivery.a` and currently exposes:
 - `solana_delivery_topology_validate`;
 - `solana_delivery_client_create`;
 - `solana_delivery_client_destroy`;
-- `solana_delivery_client_install_topology`.
+- `solana_delivery_client_install_topology`;
+- `solana_delivery_client_submit`.
 
 The validator checks the structural integrity of caller-supplied topology views, including:
 
@@ -89,13 +90,17 @@ An internal bounded route planner now consumes those resolved candidates. It ded
 
 An internal submission-policy evaluator now checks installed-topology freshness using the library monotonic clock domain. It requires a positive maximum topology age and target limit, distinguishes unavailable from stale topology, and does not interpret topology generation or caller-observed slot context as elapsed time.
 
-Transaction submission, polling, discovery, adaptive routing, retries, connection management, transport, and observation behavior are not implemented.
+`solana_delivery_client_submit` now provides callable local request acceptance. It validates the public submission options, evaluates topology freshness, resolves the installed snapshot `current_slot`, applies the deterministic bounded route planner, copies the caller transaction bytes, materializes request-owned validator identities and endpoints, and assigns a nonzero request identifier. Accepted request state remains independent of both caller-buffer lifetime and later topology replacement.
+
+`SOLANA_DELIVERY_STATUS_OK` from submission means only that the request entered library-owned local state. The current implementation does not create transport attempts or send transaction bytes to a validator.
+
+Polling, discovery, adaptive routing beyond the literal current-slot plan, retries, connection management, transport, transport attempts, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 
 The following capabilities remain future work:
 
-- signed serialized transaction submission;
+- transport of locally accepted signed serialized transactions to validator TPU endpoints;
 - leader-schedule and validator-contact discovery;
 - TPU QUIC/TLS transport and `solana-tpu` protocol negotiation;
 - validator identity and stake-weighted QoS support;

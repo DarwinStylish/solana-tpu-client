@@ -6,7 +6,7 @@ Date: 2026-09-22
 
 Accepted as the initial internal submission-admission policy.
 
-The internal submission-policy evaluator described by this record is implemented. Callable transaction submission and request lifecycle state remain unimplemented.
+The internal submission-policy evaluator described by this record is implemented. Callable local submission now composes this evaluator with deterministic resolution, bounded route planning, transaction-buffer internalization, and owned request creation. Transport attempts, terminal request lifecycle transitions, polling, and event emission remain unimplemented.
 
 This record defines the policy gate that determines whether an installed topology snapshot is fresh enough to proceed toward topology resolution and bounded route planning.
 
@@ -171,11 +171,11 @@ Those behaviors remain later submission, routing, transport, and observation wor
 
 ## Public ABI
 
-The initial admission policy remains internal.
+The admission policy remains internal implementation vocabulary.
 
-This decision does not modify `include/solana/delivery.h` and does not yet assign additional public fields to `solana_delivery_submit_options_t`.
+This record itself did not modify `include/solana/delivery.h`. ADR-0012 later extended `solana_delivery_submit_options_t` with `max_topology_age_ns` and `target_limit` and defined their mapping into this internal policy for callable submission.
 
-The public submission-options vocabulary can be mapped to an internal policy when callable submission semantics are implemented and tested.
+The public structure therefore carries stable ABI inputs while the admission representation remains private.
 
 ## Consequences
 
@@ -185,10 +185,10 @@ Resolution remains a deterministic interpretation layer rather than acquiring hi
 
 Route planning remains a pure candidate-to-target transformation rather than acquiring topology-age checks.
 
-Future submission composition can therefore follow an explicit sequence:
+Callable local submission now follows the explicit sequence:
 
 ```text
-admission -> resolution -> bounded route planning -> request lifecycle
+admission -> resolution -> bounded route planning -> local request acceptance
 ```
 
-without conflating freshness, topology interpretation, routing policy, or transport.
+without conflating freshness, topology interpretation, routing policy, or transport. Later request-lifecycle and transport work can extend accepted requests without changing the admission semantics defined here.

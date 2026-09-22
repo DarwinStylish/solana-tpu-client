@@ -50,12 +50,39 @@ int main() {
             );
     }
 
+    solana_delivery_submit_options_t options{};
+    options.struct_size =
+        static_cast<std::uint32_t>(sizeof(options));
+    options.max_topology_age_ns = UINT64_MAX;
+    options.target_limit = UINT32_C(1);
+
+    const std::uint8_t transaction = UINT8_C(1);
+    solana_delivery_request_id_t request_id = UINT64_C(99);
+
+    solana_delivery_status_t submit_status =
+        SOLANA_DELIVERY_STATUS_INTERNAL_ERROR;
+
+    if (install_status == SOLANA_DELIVERY_STATUS_OK) {
+        submit_status =
+            solana_delivery_client_submit(
+                client,
+                &transaction,
+                sizeof(transaction),
+                &options,
+                &request_id
+            );
+    }
+
     solana_delivery_client_destroy(client);
 
     return endpoint.struct_size == sizeof(endpoint) &&
                    status == SOLANA_DELIVERY_STATUS_OK &&
                    create_status == SOLANA_DELIVERY_STATUS_OK &&
-                   install_status == SOLANA_DELIVERY_STATUS_OK
+                   install_status == SOLANA_DELIVERY_STATUS_OK &&
+                   submit_status ==
+                       SOLANA_DELIVERY_STATUS_TOPOLOGY_UNAVAILABLE &&
+                   request_id ==
+                       SOLANA_DELIVERY_REQUEST_ID_NONE
                ? 0
                : 1;
 }
