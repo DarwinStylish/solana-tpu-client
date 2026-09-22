@@ -42,12 +42,33 @@ typedef struct {
     uint64_t received_monotonic_ns;
 } solana_delivery_owned_topology_t;
 
+typedef struct {
+    uint32_t leader_index;
+    uint32_t validator_index;
+    uint32_t endpoint_index;
+    solana_delivery_validator_identity_t validator_identity;
+    solana_delivery_endpoint_t endpoint;
+} solana_delivery_owned_request_target_t;
+
+typedef struct solana_delivery_owned_request {
+    solana_delivery_request_id_t request_id;
+    uint64_t topology_generation;
+    uint64_t routing_slot;
+    uint8_t *transaction_bytes;
+    size_t transaction_length;
+    solana_delivery_owned_request_target_t *targets;
+    size_t target_count;
+    struct solana_delivery_owned_request *next;
+} solana_delivery_owned_request_t;
+
 struct solana_delivery_client {
     solana_delivery_allocator_t allocator;
     solana_delivery_monotonic_time_fn monotonic_time_fn;
     void *monotonic_time_context;
     bool has_topology;
     solana_delivery_owned_topology_t topology;
+    solana_delivery_request_id_t next_request_id;
+    solana_delivery_owned_request_t *request_head;
 };
 
 solana_delivery_status_t

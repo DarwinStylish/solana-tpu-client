@@ -193,16 +193,50 @@ solana_delivery_status_t solana_delivery_client_install_topology(
 );
 
 /*
- * Phase 1 submission options vocabulary.
+ * Phase 1 submission options.
+ *
  * flags must currently be SOLANA_DELIVERY_SUBMIT_FLAGS_NONE.
+ * max_topology_age_ns and target_limit must both be nonzero.
+ * reserved0 must be zero.
+ *
  * Additional fields may be appended in compatible ABI revisions.
  */
 typedef struct {
     uint32_t struct_size;
     uint32_t flags;
+    uint64_t max_topology_age_ns;
+    uint32_t target_limit;
+    uint32_t reserved0;
 } solana_delivery_submit_options_t;
 
 #define SOLANA_DELIVERY_SUBMIT_FLAGS_NONE UINT32_C(0)
+
+/*
+ * Accept one already-signed opaque serialized transaction into the local
+ * delivery lifecycle.
+ *
+ * transaction_bytes remains caller-owned. A successful call internalizes
+ * all data required after return and assigns a nonzero request identifier.
+ *
+ * SOLANA_DELIVERY_STATUS_OK means local request acceptance only. It does
+ * not imply transport progress, validator receipt, landing, or confirmation.
+ *
+ * Callable submission requires options->struct_size to cover the complete
+ * currently required prefix through reserved0.
+ *
+ * On failure, no request is accepted and out_request_id remains
+ * SOLANA_DELIVERY_REQUEST_ID_NONE when out_request_id itself is valid.
+ *
+ * Phase 1 defines no concurrent use of one client for topology installation,
+ * submission, polling, or destruction.
+ */
+solana_delivery_status_t solana_delivery_client_submit(
+    solana_delivery_client_t *client,
+    const uint8_t *transaction_bytes,
+    size_t transaction_length,
+    const solana_delivery_submit_options_t *options,
+    solana_delivery_request_id_t *out_request_id
+);
 
 typedef uint32_t solana_delivery_event_class_t;
 

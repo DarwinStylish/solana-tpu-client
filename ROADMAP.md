@@ -14,26 +14,22 @@ The roadmap deliberately excludes wallet functionality, transaction construction
 
 Define and implement the public transaction-delivery API without implementing production TPU transport.
 
-Current progress includes the delivery ABI vocabulary, extensible topology-array layout, pure topology structural validation, topology fuzz coverage, opaque client lifecycle, transactional copy-on-install topology ownership, strict snapshot-generation ordering, local monotonic receipt-time tracking, deterministic internal slot-to-topology-candidate resolution, deterministic bounded route planning over resolved candidates, and internal submission-policy evaluation for monotonic topology freshness.
+Current progress includes the delivery ABI vocabulary, extensible topology-array layout, pure topology structural validation, topology fuzz coverage, opaque client lifecycle, transactional copy-on-install topology ownership, strict snapshot-generation ordering, local monotonic receipt-time tracking, deterministic internal slot-to-topology-candidate resolution, deterministic bounded route planning over resolved candidates, monotonic topology-freshness admission, the callable signed-transaction submission ABI, bounded public submission policy inputs, nonzero request identifiers, caller-buffer internalization, request-owned route materialization, and failure-atomic local request acceptance.
 
-Expected work:
+Remaining Phase 1 work:
 
-- versioned C ABI for opaque signed transaction submission
-- explicit caller-buffer ownership and lifetime contract
-- request identifiers
-- submission options and bounded policy inputs
-- library-defined result and error model
 - discovery-provider interface
-- immutable topology snapshot representation
-- validator identity separated from transport endpoint identity
-- deterministic route-planner tests using synthetic topology
+- explicit request lifecycle transitions
+- caller-driven request and event polling
+- terminal-event retention and backpressure guarantees
+- additional callable-submission hardening before version-1 ABI freeze
 
 Exit criteria:
 
 - public headers compile as C11 and C++
 - no private execution-core dependency
 - API tests pin ABI-sensitive layout intentionally
-- topology and submission policy can be tested without a live cluster
+- topology, admission, and local submission acceptance can be tested without a live cluster
 - current inbound decoder remains clearly separate from the delivery API
 
 ## Phase 2 — TPU Transport and Connection Lifecycle

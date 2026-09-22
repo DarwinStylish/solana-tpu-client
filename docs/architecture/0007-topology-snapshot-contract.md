@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 topology design.
 
-Structural topology validation, copy-on-install client state, deterministic internal topology resolution, deterministic bounded planning over resolved candidates, and internal monotonic topology-age policy evaluation are implemented. Discovery, adaptive routing, transaction submission, retries, and transport remain unimplemented.
+Structural topology validation, copy-on-install client state, deterministic internal topology resolution, deterministic bounded planning over resolved candidates, internal monotonic topology-age policy evaluation, and callable local submission acceptance are implemented. Accepted requests materialize their selected validator identities and endpoints so later topology replacement does not retarget them. Discovery, adaptive routing, retries, transport attempts, and transport remain unimplemented.
 
 ## Context
 

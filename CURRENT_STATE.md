@@ -22,7 +22,7 @@ The public repository no longer requires private HFT engine headers or types to 
 
 The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
 
-The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, an internal deterministic bounded route planner, and internal submission-policy evaluation for monotonic topology freshness. It does not implement adaptive routing, transaction submission, transport, polling, discovery, retries, or observation.
+The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, an internal deterministic bounded route planner, monotonic topology-freshness admission, and callable local submission acceptance with owned request state. It does not implement adaptive routing, transport attempts, transport, polling, discovery, retries, or observation.
 
 ## Public/Private Boundary
 
@@ -66,6 +66,7 @@ Its current contracts include:
 - leader slot-range records;
 - a topology view carrying generation and caller-observed slot context;
 - opaque request and attempt identifiers;
+- a 24-byte extensible submission-options record carrying maximum topology age and a bounded target limit;
 - a 64-byte delivery-event envelope whose concrete event codes remain intentionally unfrozen.
 
 The topology aggregate contains native process pointers to caller-owned arrays. `solana_delivery_client_install_topology` validates and internalizes the required data before returning success, after which the caller may reuse or release the supplied snapshot storage.
@@ -118,11 +119,27 @@ The planner performs no topology traversal, freshness evaluation, adaptive ranki
 
 Submission-policy evaluation is a separate internal stage. It validates a positive maximum topology age and target limit, requires an installed topology, samples the client monotonic clock once, accepts topology whose age is at most the configured maximum, returns `SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE` when that age is exceeded, and treats backward movement within the monotonic clock domain as an internal error. Generation and `current_slot` are not used as freshness clocks.
 
+`solana_delivery_client_submit` composes that admission stage with deterministic resolution and bounded planning. The installed snapshot `current_slot` is used as the literal routing anchor, not as a freshness clock.
+
+A successful local submission:
+
+- copies the non-empty caller transaction byte range into library-owned storage;
+- materializes the selected validator identities and endpoint records rather than depending only on replaceable topology indices;
+- records the topology generation and routing slot used for planning;
+- assigns a nonzero request identifier unique within the client lifetime;
+- commits the request to library-owned state only after all preparation succeeds.
+
+Submission preparation is failure-atomic. Argument rejection, stale or unavailable topology, planning failure, allocation failure, and request-ID exhaustion do not create a partially accepted request or consume an identifier.
+
+Accepted requests are currently retained until client destruction. Client destruction releases their transaction storage, materialized target storage, and request records.
+
+Submission success is local acceptance only. It does not create a transport attempt, send bytes, imply validator receipt, or claim landing or confirmation.
+
 ## Not Implemented
 
 The current revision does not implement:
 
-- Solana TPU transaction submission;
+- transmission of locally accepted transactions to Solana TPU endpoints;
 - QUIC client transport;
 - TLS identity handling;
 - `solana-tpu` ALPN negotiation;

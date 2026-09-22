@@ -437,6 +437,33 @@ static void owned_topology_release(
     memset(owned, 0, sizeof(*owned));
 }
 
+static void owned_requests_release(
+    const solana_delivery_allocator_t *allocator,
+    solana_delivery_owned_request_t **head
+) {
+    if (!allocator_is_valid(allocator) || head == NULL) {
+        return;
+    }
+
+    while (*head != NULL) {
+        solana_delivery_owned_request_t *request = *head;
+        *head = request->next;
+
+        allocator->free_fn(
+            allocator->context,
+            request->transaction_bytes
+        );
+        allocator->free_fn(
+            allocator->context,
+            request->targets
+        );
+        allocator->free_fn(
+            allocator->context,
+            request
+        );
+    }
+}
+
 static solana_delivery_status_t clone_array(
     const solana_delivery_allocator_t *allocator,
     const void *source,
@@ -684,6 +711,7 @@ solana_delivery_client_create_with_dependencies(
     client->monotonic_time_fn = monotonic_time_fn;
     client->monotonic_time_context =
         monotonic_time_context;
+    client->next_request_id = UINT64_C(1);
 
     *out_client = client;
     return SOLANA_DELIVERY_STATUS_OK;
@@ -720,6 +748,11 @@ void solana_delivery_client_destroy(
 
     solana_delivery_allocator_t allocator =
         client->allocator;
+
+    owned_requests_release(
+        &allocator,
+        &client->request_head
+    );
 
     owned_topology_release(
         &allocator,
