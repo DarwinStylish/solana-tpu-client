@@ -85,7 +85,9 @@ An empty topology is structurally valid and may be installed, but that does not 
 
 The delivery library also has an internal deterministic topology resolver. Given an installed snapshot and requested slot, it resolves matching leader records through validator-to-endpoint associations while preserving source order. It performs no ranking, deduplication, freshness policy, fanout, retries, allocation, or network activity. This resolver is not part of the public C ABI.
 
-Transaction submission, polling, discovery, routing policy, connection management, transport, and observation behavior are not implemented.
+An internal bounded route planner now consumes those resolved candidates. It deduplicates by validator-and-endpoint identity, preserves first-occurrence ordering and leader provenance, and applies a positive target limit without allocation or network activity. It remains internal and does not define a public routing-policy ABI.
+
+Transaction submission, polling, discovery, adaptive routing, topology freshness policy, retries, connection management, transport, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 

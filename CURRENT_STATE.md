@@ -22,7 +22,7 @@ The public repository no longer requires private HFT engine headers or types to 
 
 The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
 
-The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, and deterministic internal slot-to-topology-candidate resolution. It does not implement routing policy, transaction submission, transport, polling, discovery, or observation.
+The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, and an internal deterministic bounded route planner. It does not implement adaptive routing, topology freshness policy, transaction submission, transport, polling, discovery, retries, or observation.
 
 ## Public/Private Boundary
 
@@ -110,6 +110,12 @@ Resolution reports `SOLANA_DELIVERY_STATUS_TOPOLOGY_UNAVAILABLE` when no topolog
 
 This resolver is internal implementation vocabulary and does not add a public routing ABI.
 
+The internal route planner consumes only resolved candidates. It deduplicates by `(validator_index, endpoint_index)`, preserves the first occurrence and its leader provenance, preserves first-occurrence order, and selects at most a positive target limit.
+
+The planner reports both the complete unique-target count and the bounded selected-target count. Insufficient output capacity is reported atomically with `SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED` before any target output is written.
+
+The planner performs no topology traversal, freshness evaluation, adaptive ranking, retry scheduling, connection management, transport work, allocation, or network activity. Its types and functions remain internal and do not add a public routing ABI.
+
 ## Not Implemented
 
 The current revision does not implement:
@@ -122,7 +128,8 @@ The current revision does not implement:
 - TPU contact-information resolution;
 - connection pooling or prewarming;
 - stake-weighted QoS behavior;
-- transaction routing or leader fanout;
+- adaptive or transport-aware transaction routing;
+- plausible-leader-frontier expansion beyond literal resolved slot matches;
 - retry and backpressure policies;
 - landing or confirmation observation;
 - Agave/Firedancer TPU-ingress conformance;
