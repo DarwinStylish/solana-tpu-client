@@ -87,7 +87,9 @@ The delivery library also has an internal deterministic topology resolver. Given
 
 An internal bounded route planner now consumes those resolved candidates. It deduplicates by validator-and-endpoint identity, preserves first-occurrence ordering and leader provenance, and applies a positive target limit without allocation or network activity. It remains internal and does not define a public routing-policy ABI.
 
-Transaction submission, polling, discovery, adaptive routing, topology freshness policy, retries, connection management, transport, and observation behavior are not implemented.
+An internal submission-policy evaluator now checks installed-topology freshness using the library monotonic clock domain. It requires a positive maximum topology age and target limit, distinguishes unavailable from stale topology, and does not interpret topology generation or caller-observed slot context as elapsed time.
+
+Transaction submission, polling, discovery, adaptive routing, retries, connection management, transport, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 
