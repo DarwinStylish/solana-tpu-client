@@ -65,6 +65,17 @@ solana_delivery_client_create_with_allocator(
 );
 
 typedef struct {
+    uint64_t max_topology_age_ns;
+    size_t target_limit;
+} solana_delivery_submission_policy_t;
+
+solana_delivery_status_t
+solana_delivery_client_evaluate_submission_policy(
+    const solana_delivery_client_t *client,
+    const solana_delivery_submission_policy_t *policy
+);
+
+typedef struct {
     uint32_t leader_index;
     uint32_t validator_index;
     uint32_t endpoint_index;
