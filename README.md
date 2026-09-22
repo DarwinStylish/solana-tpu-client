@@ -83,7 +83,9 @@ Installation is transactional. Structural rejection, allocation failure, or mono
 
 An empty topology is structurally valid and may be installed, but that does not imply that a usable route exists.
 
-Transaction submission, polling, discovery, routing, connection management, transport, and observation behavior are not implemented.
+The delivery library also has an internal deterministic topology resolver. Given an installed snapshot and requested slot, it resolves matching leader records through validator-to-endpoint associations while preserving source order. It performs no ranking, deduplication, freshness policy, fanout, retries, allocation, or network activity. This resolver is not part of the public C ABI.
+
+Transaction submission, polling, discovery, routing policy, connection management, transport, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 
