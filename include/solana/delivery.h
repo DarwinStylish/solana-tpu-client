@@ -246,12 +246,21 @@ typedef uint32_t solana_delivery_event_class_t;
 #define SOLANA_DELIVERY_EVENT_CLASS_OBSERVATION UINT32_C(3)
 
 /*
- * Structural event envelope only.
+ * Event-code values are scoped by event_class.
  *
- * event_code values are intentionally not frozen yet; they must be
- * derived from implemented behavior before callable polling APIs are
- * introduced. attempt_id is SOLANA_DELIVERY_ATTEMPT_ID_NONE when an
- * event is not associated with a transport attempt.
+ * Explicitly named event-code constants are part of the public ABI.
+ * Values without a named public constant are not assigned semantics.
+ */
+#define SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED UINT32_C(1)
+
+/*
+ * Stable event envelope.
+ *
+ * SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED is meaningful only when
+ * event_class is SOLANA_DELIVERY_EVENT_CLASS_REQUEST.
+ *
+ * attempt_id is SOLANA_DELIVERY_ATTEMPT_ID_NONE when an event is not
+ * associated with a transport attempt.
  *
  * request_sequence is library-local ordering within one request.
  * monotonic_time_ns belongs to the library monotonic clock domain.
@@ -267,6 +276,38 @@ typedef struct {
     uint64_t monotonic_time_ns;
     uint64_t reserved[2];
 } solana_delivery_event_t;
+
+/*
+ * Copy pending delivery events into caller-owned storage.
+ *
+ * Polling is nonblocking. out_event_count is required and is set to zero
+ * before events are consumed whenever the pointer itself is valid.
+ *
+ * When event_capacity is zero, events may be NULL and event_stride is
+ * ignored. No event is consumed.
+ *
+ * When event_capacity is nonzero, events must be non-NULL and suitably
+ * aligned. event_stride must be at least the minimum supported event
+ * prefix, currently 64 bytes, and must preserve event alignment between
+ * adjacent elements.
+ *
+ * A successful call may copy fewer events than event_capacity. Only
+ * events copied to caller storage are consumed. An empty event channel
+ * returns SOLANA_DELIVERY_STATUS_OK with an output count of zero.
+ *
+ * The implementation writes no more than the event prefix supported by
+ * both the implementation and caller-provided stride. struct_size reports
+ * the number of event-structure bytes written for each returned event.
+ *
+ * Phase 1 requires exclusive access to the client while polling.
+ */
+solana_delivery_status_t solana_delivery_client_poll_events(
+    solana_delivery_client_t *client,
+    solana_delivery_event_t *events,
+    size_t event_capacity,
+    uint32_t event_stride,
+    size_t *out_event_count
+);
 
 #ifdef __cplusplus
 }
