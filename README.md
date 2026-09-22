@@ -153,6 +153,7 @@ The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU
 - [ADR-0010: Deterministic Bounded Route Planning](docs/architecture/0010-route-planner-policy.md)
 - [ADR-0011: Submission Admission and Topology Freshness](docs/architecture/0011-submission-admission-freshness.md)
 - [ADR-0012: Callable Submission Contract](docs/architecture/0012-callable-submission-contract.md)
+- [ADR-0013: Request Lifecycle and Event Polling](docs/architecture/0013-request-lifecycle-and-event-polling.md)
 
 ## Technical Roadmap
 
