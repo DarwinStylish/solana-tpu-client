@@ -93,6 +93,10 @@ _Static_assert(
     "leader stride ABI changed"
 );
 
+_Static_assert(sizeof(solana_delivery_event_class_t) == 4,
+               "delivery event class ABI changed");
+_Static_assert(SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED == UINT32_C(1),
+               "accepted request event code changed");
 _Static_assert(sizeof(solana_delivery_event_t) == 64,
                "delivery event ABI changed");
 _Static_assert(offsetof(solana_delivery_event_t, struct_size) == 0,
@@ -111,6 +115,12 @@ _Static_assert(offsetof(solana_delivery_event_t, request_sequence) == 32,
                "event sequence offset changed");
 _Static_assert(offsetof(solana_delivery_event_t, monotonic_time_ns) == 40,
                "event timestamp offset changed");
+_Static_assert(offsetof(solana_delivery_event_t, reserved) == 48,
+               "event reserved offset changed");
+_Static_assert(sizeof(((solana_delivery_event_t *)0)->event_code) == 4,
+               "event code width changed");
+_Static_assert(sizeof(((solana_delivery_event_t *)0)->diagnostic_code) == 4,
+               "event diagnostic width changed");
 
 int main(void) {
     return 0;

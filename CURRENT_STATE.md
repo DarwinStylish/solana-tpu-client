@@ -22,7 +22,7 @@ The public repository no longer requires private HFT engine headers or types to 
 
 The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
 
-The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, an internal deterministic bounded route planner, monotonic topology-freshness admission, and callable local submission acceptance with owned request state. It does not implement adaptive routing, transport attempts, transport, polling, discovery, retries, or observation.
+The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, an internal deterministic bounded route planner, monotonic topology-freshness admission, callable local submission acceptance with owned request state, bounded request-event retention, and nonblocking caller-driven event polling. It does not implement adaptive routing, transport attempts, transport, discovery, retries, terminal request transitions, request reclamation, or observation.
 
 ## Public/Private Boundary
 
@@ -67,7 +67,7 @@ Its current contracts include:
 - a topology view carrying generation and caller-observed slot context;
 - opaque request and attempt identifiers;
 - a 24-byte extensible submission-options record carrying maximum topology age and a bounded target limit;
-- a 64-byte delivery-event envelope whose concrete event codes remain intentionally unfrozen.
+- a 64-byte delivery-event envelope with request, attempt, and observation classes; `SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED` is currently the only concrete event code with assigned public semantics.
 
 The topology aggregate contains native process pointers to caller-owned arrays. `solana_delivery_client_install_topology` validates and internalizes the required data before returning success, after which the caller may reuse or release the supplied snapshot storage.
 
@@ -129,11 +129,17 @@ A successful local submission:
 - assigns a nonzero request identifier unique within the client lifetime;
 - commits the request to library-owned state only after all preparation succeeds.
 
-Submission preparation is failure-atomic. Argument rejection, stale or unavailable topology, planning failure, allocation failure, and request-ID exhaustion do not create a partially accepted request or consume an identifier.
+Submission preparation is failure-atomic. Argument rejection, stale or unavailable topology, planning failure, allocation failure, request-ID exhaustion, accepted-event timestamp failure, and event-channel backpressure do not create a partially accepted request or consume an identifier.
 
-Accepted requests are currently retained until client destruction. Client destruction releases their transaction storage, materialized target storage, and request records.
+Local request acceptance and retention of its request-level `SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED` event form one logical commit. A successful acceptance produces exactly one request event with request sequence one, `SOLANA_DELIVERY_ATTEMPT_ID_NONE`, and a timestamp from the client monotonic clock domain.
 
-Submission success is local acceptance only. It does not create a transport attempt, send bytes, imply validator receipt, or claim landing or confirmation.
+The implementation retains delivery events in a bounded private 64-entry ring. A full event ring returns `SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED` before local request acceptance commits; unread events are not overwritten or silently discarded.
+
+`solana_delivery_client_poll_events` is nonblocking and copies pending events in FIFO storage order into caller-provided stride-aware output storage. It supports partial drains, consumes only events actually copied, and returns success with zero copied events when the queue is empty. Zero-capacity polling consumes nothing.
+
+Polling an accepted event does not reclaim its request. Terminal request transitions are not yet implemented, so accepted requests remain owned until client destruction. Client destruction releases their transaction storage, materialized target storage, and request records.
+
+Submission success remains local acceptance only. It does not create a transport attempt, send bytes, imply validator receipt, or claim landing or confirmation.
 
 ## Not Implemented
 
@@ -149,7 +155,9 @@ The current revision does not implement:
 - stake-weighted QoS behavior;
 - adaptive or transport-aware transaction routing;
 - plausible-leader-frontier expansion beyond literal resolved slot matches;
-- retry and backpressure policies;
+- transport retry, connection-pressure, and transport-backpressure policies;
+- transport-attempt lifecycle and attempt events;
+- terminal request transitions and post-terminal request reclamation;
 - landing or confirmation observation;
 - Agave/Firedancer TPU-ingress conformance;
 - kernel-bypass networking.

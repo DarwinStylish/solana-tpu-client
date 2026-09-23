@@ -59,7 +59,8 @@ The delivery boundary builds `build/libsolana_delivery.a` and currently exposes:
 - `solana_delivery_client_create`;
 - `solana_delivery_client_destroy`;
 - `solana_delivery_client_install_topology`;
-- `solana_delivery_client_submit`.
+- `solana_delivery_client_submit`;
+- `solana_delivery_client_poll_events`.
 
 The validator checks the structural integrity of caller-supplied topology views, including:
 
@@ -92,9 +93,13 @@ An internal submission-policy evaluator now checks installed-topology freshness 
 
 `solana_delivery_client_submit` now provides callable local request acceptance. It validates the public submission options, evaluates topology freshness, resolves the installed snapshot `current_slot`, applies the deterministic bounded route planner, copies the caller transaction bytes, materializes request-owned validator identities and endpoints, and assigns a nonzero request identifier. Accepted request state remains independent of both caller-buffer lifetime and later topology replacement.
 
-`SOLANA_DELIVERY_STATUS_OK` from submission means only that the request entered library-owned local state. The current implementation does not create transport attempts or send transaction bytes to a validator.
+Successful local acceptance also retains one request-level `SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED` event with request sequence one and no transport-attempt identifier. Request acceptance and event retention are one logical commit, and a full bounded event channel rejects the submission with `SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED` before the request or identifier is committed.
 
-Polling, discovery, adaptive routing beyond the literal current-slot plan, retries, connection management, transport, transport attempts, and observation behavior are not implemented.
+`solana_delivery_client_poll_events` provides nonblocking caller-driven FIFO event polling with explicit output stride, partial drains, and zero-consumption empty or zero-capacity polling. Polling the accepted event does not reclaim the request.
+
+`SOLANA_DELIVERY_STATUS_OK` from submission means only that the request entered library-owned local state and its accepted event was retained. The current implementation does not create transport attempts or send transaction bytes to a validator.
+
+Discovery, adaptive routing beyond the literal current-slot plan, retries, connection management, transport, transport attempts, terminal request transitions and reclamation, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 
@@ -106,7 +111,8 @@ The following capabilities remain future work:
 - validator identity and stake-weighted QoS support;
 - connection pooling and leader prewarming;
 - adaptive leader routing and controlled fanout;
-- retry, backpressure, and connection-failure handling;
+- transport retry, transport backpressure, and connection-failure handling;
+- terminal request transitions and post-terminal request reclamation;
 - transaction landing or confirmation tracking;
 - Agave and Firedancer TPU-ingress interoperability testing;
 - kernel-bypass networking.
@@ -153,6 +159,7 @@ The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU
 - [ADR-0010: Deterministic Bounded Route Planning](docs/architecture/0010-route-planner-policy.md)
 - [ADR-0011: Submission Admission and Topology Freshness](docs/architecture/0011-submission-admission-freshness.md)
 - [ADR-0012: Callable Submission Contract](docs/architecture/0012-callable-submission-contract.md)
+- [ADR-0013: Request Lifecycle and Event Polling](docs/architecture/0013-request-lifecycle-and-event-polling.md)
 
 ## Technical Roadmap
 

@@ -3,6 +3,7 @@
 
 #include "solana/delivery.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
@@ -13,6 +14,25 @@ static_assert(sizeof(solana_delivery_validator_endpoint_t) == 16);
 static_assert(sizeof(solana_delivery_leader_t) == 32);
 static_assert(sizeof(solana_delivery_submit_options_t) == 24);
 static_assert(sizeof(solana_delivery_event_t) == 64);
+static_assert(
+    SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED == UINT32_C(1)
+);
+
+using solana_delivery_poll_events_fn_t =
+    solana_delivery_status_t (*)(
+        solana_delivery_client_t *,
+        solana_delivery_event_t *,
+        std::size_t,
+        std::uint32_t,
+        std::size_t *
+    );
+
+static_assert(
+    std::is_same<
+        decltype(&solana_delivery_client_poll_events),
+        solana_delivery_poll_events_fn_t
+    >::value
+);
 
 static_assert(std::is_standard_layout<
                   solana_delivery_endpoint_t>::value);
