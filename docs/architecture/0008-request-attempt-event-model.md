@@ -6,7 +6,7 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 event design.
 
-No delivery event API described by this record is implemented yet.
+Request-level local-acceptance event polling is now implemented. Transport-attempt and observation events remain unimplemented.
 
 ## Context
 

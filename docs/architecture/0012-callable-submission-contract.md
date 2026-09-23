@@ -6,7 +6,7 @@ Date: 2026-09-22
 
 Accepted as the initial callable transaction-submission contract.
 
-The callable local-acceptance behavior described by this record is implemented. Transport attempts, terminal request lifecycle transitions, event polling, retries, and observation remain unimplemented.
+The callable local-acceptance behavior described by this record is implemented. Event polling is defined and implemented by ADR-0013. Transport attempts, terminal request lifecycle transitions, retries, and observation remain unimplemented.
 
 This record defines local request acceptance and composition of the already-implemented topology-freshness, topology-resolution, and bounded route-planning stages.
 

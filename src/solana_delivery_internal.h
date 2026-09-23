@@ -50,6 +50,12 @@ typedef struct {
     solana_delivery_endpoint_t endpoint;
 } solana_delivery_owned_request_target_t;
 
+typedef uint32_t solana_delivery_request_state_t;
+
+#define SOLANA_DELIVERY_REQUEST_STATE_ACCEPTED UINT32_C(1)
+
+#define SOLANA_DELIVERY_EVENT_QUEUE_CAPACITY 64U
+
 typedef struct solana_delivery_owned_request {
     solana_delivery_request_id_t request_id;
     uint64_t topology_generation;
@@ -58,8 +64,17 @@ typedef struct solana_delivery_owned_request {
     size_t transaction_length;
     solana_delivery_owned_request_target_t *targets;
     size_t target_count;
+    solana_delivery_request_state_t state;
+    uint64_t next_event_sequence;
     struct solana_delivery_owned_request *next;
 } solana_delivery_owned_request_t;
+
+typedef struct {
+    solana_delivery_event_t
+        entries[SOLANA_DELIVERY_EVENT_QUEUE_CAPACITY];
+    size_t head;
+    size_t count;
+} solana_delivery_event_queue_t;
 
 struct solana_delivery_client {
     solana_delivery_allocator_t allocator;
@@ -69,7 +84,17 @@ struct solana_delivery_client {
     solana_delivery_owned_topology_t topology;
     solana_delivery_request_id_t next_request_id;
     solana_delivery_owned_request_t *request_head;
+    solana_delivery_event_queue_t event_queue;
 };
+
+bool solana_delivery_event_queue_has_capacity(
+    const solana_delivery_client_t *client
+);
+
+solana_delivery_status_t solana_delivery_event_queue_push(
+    solana_delivery_client_t *client,
+    const solana_delivery_event_t *event
+);
 
 solana_delivery_status_t
 solana_delivery_client_create_with_dependencies(

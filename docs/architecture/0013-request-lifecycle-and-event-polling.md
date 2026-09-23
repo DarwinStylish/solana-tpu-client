@@ -6,7 +6,7 @@ Date: 2026-09-22
 
 Accepted as the initial request-lifecycle and event-polling design.
 
-The behavior described by this record is not yet implemented.
+The local-acceptance lifecycle, bounded event retention, and caller-driven polling behavior described by this record are implemented. Terminal request transitions, transport attempts, retries, transport, and observation remain unimplemented.
 
 This record defines request-level event sequencing, bounded event retention, polling, lifecycle backpressure, and the relationship between request state and required events.
 
@@ -27,7 +27,7 @@ The public event envelope already separates request, transport-attempt, and obse
 - a diagnostic code;
 - reserved extension space.
 
-Concrete event codes remain intentionally unfrozen until corresponding behavior exists.
+Only event codes with named public constants have assigned ABI semantics. `SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED` is currently the only concrete request event code; later codes remain undefined until corresponding behavior exists.
 
 The next lifecycle boundary must make local acceptance observable without inventing transport evidence and must define what happens when callers do not drain events quickly enough.
 
@@ -44,7 +44,7 @@ Transport-specific intermediate states may be added later without exposing an AB
 
 The public observation mechanism is the event stream rather than direct access to mutable internal request state.
 
-PR 16 implements local acceptance observation and the lifecycle substrate required for later terminal transitions.
+The current implementation provides local acceptance observation and the lifecycle substrate required for later terminal transitions.
 
 It does not fabricate a terminal transition for requests that have not entered a real transport lifecycle.
 
@@ -163,7 +163,7 @@ Until concrete terminal transitions exist, locally accepted requests remain owne
 
 ## Polling API
 
-Introduce a nonblocking caller-driven event poll:
+The public API provides a nonblocking caller-driven event poll:
 
 ```c
 solana_delivery_status_t solana_delivery_client_poll_events(

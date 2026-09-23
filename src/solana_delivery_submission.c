@@ -367,7 +367,57 @@ solana_delivery_status_t solana_delivery_client_submit(
     request->transaction_length = transaction_length;
     request->targets = owned_targets;
     request->target_count = target_count;
+    request->state =
+        SOLANA_DELIVERY_REQUEST_STATE_ACCEPTED;
+    request->next_event_sequence = UINT64_C(2);
     request->next = client->request_head;
+
+    if (!solana_delivery_event_queue_has_capacity(client)) {
+        status =
+            SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED;
+        goto cleanup;
+    }
+
+    uint64_t accepted_time_ns = 0U;
+    status = client->monotonic_time_fn(
+        client->monotonic_time_context,
+        &accepted_time_ns
+    );
+
+    if (status != SOLANA_DELIVERY_STATUS_OK) {
+        goto cleanup;
+    }
+
+    if (accepted_time_ns <
+        client->topology.received_monotonic_ns) {
+        status = SOLANA_DELIVERY_STATUS_INTERNAL_ERROR;
+        goto cleanup;
+    }
+
+    solana_delivery_event_t accepted_event = {
+        .struct_size =
+            (uint32_t)sizeof(solana_delivery_event_t),
+        .event_class =
+            SOLANA_DELIVERY_EVENT_CLASS_REQUEST,
+        .event_code =
+            SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED,
+        .diagnostic_code = 0,
+        .request_id = request_id,
+        .attempt_id =
+            SOLANA_DELIVERY_ATTEMPT_ID_NONE,
+        .request_sequence = UINT64_C(1),
+        .monotonic_time_ns = accepted_time_ns,
+        .reserved = {UINT64_C(0), UINT64_C(0)},
+    };
+
+    status = solana_delivery_event_queue_push(
+        client,
+        &accepted_event
+    );
+
+    if (status != SOLANA_DELIVERY_STATUS_OK) {
+        goto cleanup;
+    }
 
     client->request_head = request;
 
