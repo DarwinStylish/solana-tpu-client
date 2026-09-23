@@ -149,7 +149,7 @@ Run the decoder microbenchmark:
 make bench
 ```
 
-The test exercises the loopback UDP prototype. It is not a Solana cluster or TPU integration test.
+The ingress integration test exercises the loopback UDP prototype. Delivery and discovery tests exercise local API, state, ABI, and conformance behavior without a live Solana cluster. None of these tests is a TPU integration test.
 
 ## Architecture Records
 

@@ -101,7 +101,7 @@ Topology installation adds stateful ordering semantics:
 - validation, allocation/copy, and receipt-time acquisition complete before the installed snapshot is replaced;
 - failure during any of those stages leaves the previously installed snapshot unchanged.
 
-Tests exercise deep-copy ownership, caller-buffer independence, compatible extended-stride normalization, stale-generation rejection, allocation failure at each copy stage, and monotonic-clock failure. Sanitizer runs cover temporary-state cleanup on those failure paths.
+Tests exercise deep-copy ownership, caller-buffer independence, compatible extended-stride normalization, stale-generation rejection, allocation failure at each copy stage, and monotonic-clock failure. Sanitizer runs cover temporary-state cleanup on those failure paths. Public-only discovery-refresh conformance tests additionally verify provider alignment validation, NULL provider context, snapshot internalization across provider release, stale and invalid refresh failure atomicity through subsequent submission, and successful replacement with an empty topology.
 
 An empty topology is structurally valid and may be installed. It does not imply that a route is available.
 
