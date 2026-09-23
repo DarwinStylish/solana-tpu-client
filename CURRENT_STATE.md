@@ -22,7 +22,7 @@ The public repository no longer requires private HFT engine headers or types to 
 
 The repository also provides `include/solana/delivery.h` and `build/libsolana_delivery.a` for the emerging transaction-delivery boundary.
 
-The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, deterministic internal slot-to-topology-candidate resolution, an internal deterministic bounded route planner, monotonic topology-freshness admission, callable local submission acceptance with owned request state, bounded request-event retention, and nonblocking caller-driven event polling. It does not implement adaptive routing, transport attempts, transport, discovery, retries, terminal request transitions, request reclamation, or observation.
+The delivery library currently implements structural topology validation, opaque client creation/destruction, transactional copy-on-install topology ownership, explicit synchronous caller-owned discovery-provider refresh, deterministic internal slot-to-topology-candidate resolution, an internal deterministic bounded route planner, monotonic topology-freshness admission, callable local submission acceptance with owned request state, bounded request-event retention, and nonblocking caller-driven event polling. It does not implement concrete cluster discovery sources, adaptive routing, transport attempts, transport, retries, terminal request transitions, request reclamation, or observation.
 
 ## Public/Private Boundary
 
@@ -104,6 +104,12 @@ Topology installation adds stateful ordering semantics:
 Tests exercise deep-copy ownership, caller-buffer independence, compatible extended-stride normalization, stale-generation rejection, allocation failure at each copy stage, and monotonic-clock failure. Sanitizer runs cover temporary-state cleanup on those failure paths.
 
 An empty topology is structurally valid and may be installed. It does not imply that a route is available.
+
+`include/solana/discovery.h` defines the public caller-owned discovery-provider boundary. `solana_delivery_client_refresh_topology` validates the provider, acquires one borrowed topology snapshot, and passes that snapshot through `solana_delivery_client_install_topology`.
+
+A failed provider acquisition does not mutate installed topology and does not establish a releasable borrow. A successful non-null acquisition is released after the installation attempt, including when topology validation, generation ordering, allocation, or monotonic receipt-time acquisition causes installation to fail. The client retains no provider-owned snapshot pointers.
+
+Discovery refresh is explicit and synchronous. Submission does not invoke it implicitly. No concrete RPC, streaming, or Geyser discovery implementation is currently provided.
 
 The internal topology resolver consumes only installed library-owned topology. For a requested slot it preserves leader-array order and, within each matching leader, validator-to-endpoint association order. It produces leader, validator, and endpoint indices without ranking, deduplication, fanout selection, freshness policy, retries, allocation, or network activity.
 
