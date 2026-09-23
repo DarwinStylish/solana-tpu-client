@@ -14,12 +14,12 @@ The roadmap deliberately excludes wallet functionality, transaction construction
 
 Define and implement the public transaction-delivery API without implementing production TPU transport.
 
-Current progress includes the delivery ABI vocabulary, extensible topology-array layout, pure topology structural validation, topology fuzz coverage, opaque client lifecycle, transactional copy-on-install topology ownership, strict snapshot-generation ordering, local monotonic receipt-time tracking, explicit synchronous caller-owned discovery-provider refresh, deterministic internal slot-to-topology-candidate resolution, deterministic bounded route planning over resolved candidates, monotonic topology-freshness admission, the callable signed-transaction submission ABI, bounded public submission policy inputs, nonzero request identifiers, caller-buffer internalization, request-owned route materialization, failure-atomic local request acceptance, request-level accepted events, bounded event retention, explicit event-channel backpressure, and nonblocking stride-aware caller event polling.
+Current progress includes the delivery ABI vocabulary, extensible topology-array layout, pure topology structural validation, topology fuzz coverage, opaque client lifecycle, transactional copy-on-install topology ownership, strict snapshot-generation ordering, local monotonic receipt-time tracking, explicit synchronous caller-owned discovery-provider refresh with public-only conformance coverage, deterministic internal slot-to-topology-candidate resolution, deterministic bounded route planning over resolved candidates, monotonic topology-freshness admission, the callable signed-transaction submission ABI, bounded public submission policy inputs, nonzero request identifiers, caller-buffer internalization, request-owned route materialization, failure-atomic local request acceptance, request-level accepted events, bounded event retention, explicit event-channel backpressure, and nonblocking stride-aware caller event polling.
 
 Remaining Phase 1 work:
 
-- additional callable-submission, discovery-refresh, and event-polling hardening before version-1 ABI freeze
-- additional ABI and conformance coverage for lifecycle, discovery, and backpressure semantics
+- additional callable-submission and event-polling hardening before version-1 ABI freeze
+- additional ABI and conformance coverage for lifecycle and backpressure semantics
 
 Exit criteria:
 
