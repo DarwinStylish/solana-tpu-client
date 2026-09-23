@@ -6,8 +6,6 @@ Date: 2026-09-13
 
 Accepted as the target architecture.
 
-The current delivery library implements owned topology state, deterministic internal topology resolution, deterministic bounded route planning, monotonic topology-freshness evaluation, and callable local submission acceptance with request-owned transaction and target state. Discovery, adaptive routing, retries, connection management, transport attempts, transport, and observation described by this record remain unimplemented.
-
 ## Context
 
 A native TPU delivery system has several concerns that change independently:

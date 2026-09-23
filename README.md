@@ -62,6 +62,8 @@ The delivery boundary builds `build/libsolana_delivery.a` and currently exposes:
 - `solana_delivery_client_submit`;
 - `solana_delivery_client_poll_events`.
 
+`include/solana/discovery.h` additionally exposes `solana_delivery_client_refresh_topology` and the caller-owned discovery-provider ABI.
+
 The validator checks the structural integrity of caller-supplied topology views, including:
 
 - public structure-size prefixes;
@@ -85,6 +87,10 @@ Installation is transactional. Structural rejection, allocation failure, or mono
 
 An empty topology is structurally valid and may be installed, but that does not imply that a usable route exists.
 
+`solana_delivery_client_refresh_topology` provides explicit synchronous topology refresh through a caller-owned discovery provider. A successful provider acquisition is passed through the existing transactional topology-installation path. The client retains neither the provider nor provider-owned snapshot storage after refresh returns, and transaction submission never performs implicit discovery.
+
+The repository does not yet provide a concrete cluster discovery source such as an RPC-backed leader-schedule and validator-contact provider.
+
 The delivery library also has an internal deterministic topology resolver. Given an installed snapshot and requested slot, it resolves matching leader records through validator-to-endpoint associations while preserving source order. It performs no ranking, deduplication, freshness policy, fanout, retries, allocation, or network activity. This resolver is not part of the public C ABI.
 
 An internal bounded route planner now consumes those resolved candidates. It deduplicates by validator-and-endpoint identity, preserves first-occurrence ordering and leader provenance, and applies a positive target limit without allocation or network activity. It remains internal and does not define a public routing-policy ABI.
@@ -99,7 +105,7 @@ Successful local acceptance also retains one request-level `SOLANA_DELIVERY_REQU
 
 `SOLANA_DELIVERY_STATUS_OK` from submission means only that the request entered library-owned local state and its accepted event was retained. The current implementation does not create transport attempts or send transaction bytes to a validator.
 
-Discovery, adaptive routing beyond the literal current-slot plan, retries, connection management, transport, transport attempts, terminal request transitions and reclamation, and observation behavior are not implemented.
+Concrete cluster discovery sources, adaptive routing beyond the literal current-slot plan, retries, connection management, transport, transport attempts, terminal request transitions and reclamation, and observation behavior are not implemented.
 
 ## Not Yet Implemented
 
