@@ -18,6 +18,36 @@ static_assert(
     SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED == UINT32_C(1)
 );
 
+using solana_delivery_topology_validate_fn_t =
+    solana_delivery_status_t (*)(
+        const solana_delivery_topology_t *
+    );
+
+using solana_delivery_client_create_fn_t =
+    solana_delivery_status_t (*)(
+        solana_delivery_client_t **
+    );
+
+using solana_delivery_client_destroy_fn_t =
+    void (*)(
+        solana_delivery_client_t *
+    );
+
+using solana_delivery_install_topology_fn_t =
+    solana_delivery_status_t (*)(
+        solana_delivery_client_t *,
+        const solana_delivery_topology_t *
+    );
+
+using solana_delivery_submit_fn_t =
+    solana_delivery_status_t (*)(
+        solana_delivery_client_t *,
+        const std::uint8_t *,
+        std::size_t,
+        const solana_delivery_submit_options_t *,
+        solana_delivery_request_id_t *
+    );
+
 using solana_delivery_poll_events_fn_t =
     solana_delivery_status_t (*)(
         solana_delivery_client_t *,
@@ -26,6 +56,41 @@ using solana_delivery_poll_events_fn_t =
         std::uint32_t,
         std::size_t *
     );
+
+static_assert(
+    std::is_same<
+        decltype(&solana_delivery_topology_validate),
+        solana_delivery_topology_validate_fn_t
+    >::value
+);
+
+static_assert(
+    std::is_same<
+        decltype(&solana_delivery_client_create),
+        solana_delivery_client_create_fn_t
+    >::value
+);
+
+static_assert(
+    std::is_same<
+        decltype(&solana_delivery_client_destroy),
+        solana_delivery_client_destroy_fn_t
+    >::value
+);
+
+static_assert(
+    std::is_same<
+        decltype(&solana_delivery_client_install_topology),
+        solana_delivery_install_topology_fn_t
+    >::value
+);
+
+static_assert(
+    std::is_same<
+        decltype(&solana_delivery_client_submit),
+        solana_delivery_submit_fn_t
+    >::value
+);
 
 static_assert(
     std::is_same<
