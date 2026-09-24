@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Okot Darwin Clay
 
+/**
+ * @file ingress.h
+ * @brief Fixed-layout local ingress prototype interface.
+ */
+
 #ifndef SOLANA_INGRESS_H
 #define SOLANA_INGRESS_H
 
@@ -16,6 +21,12 @@ typedef uint8_t solana_trade_side_t;
 #define SOLANA_TRADE_SIDE_BUY UINT8_C(0)
 #define SOLANA_TRADE_SIDE_SELL UINT8_C(1)
 
+/**
+ * Decoded prototype ingress event.
+ *
+ * reserved is written as zero by solana_ingress_decode and must not be
+ * interpreted by callers.
+ */
 typedef struct {
     uint64_t instruction_type;
     uint64_t source_timestamp_ms;
@@ -30,7 +41,7 @@ typedef struct {
 extern "C" {
 #endif
 
-/*
+/**
  * The event pointer passed to this callback is valid only for the
  * duration of the callback. Callers that retain an event must copy it.
  * The callback executes synchronously on the ingress-running thread.
@@ -43,8 +54,9 @@ typedef void (*solana_ingress_event_fn)(
 /* Return nonzero to continue polling and zero to stop. */
 typedef int (*solana_ingress_continue_fn)(void *context);
 
-/*
+/**
  * Decode exactly one fixed-layout prototype event.
+ * wire_buffer and out_event are required.
  * Returns true only when wire_len is exactly SOLANA_INGRESS_WIRE_SIZE
  * and all currently validated fields are accepted.
  */
@@ -55,7 +67,7 @@ bool solana_ingress_decode(
     solana_ingress_event_t *out_event
 );
 
-/*
+/**
  * Run the loopback-only prototype receiver.
  * event_context and control_context are caller-owned and may be NULL.
  * Returns 0 after should_continue requests shutdown.

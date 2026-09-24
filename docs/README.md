@@ -14,6 +14,8 @@ The documentation is organized by responsibility.
 
 ## Public Interfaces
 
+- [Public API contracts](api/README.md) — ownership, lifetime, ABI, status, and concurrency semantics.
+- [Examples](../examples/README.md) — standalone public-interface examples.
 - [`delivery.h`](../include/solana/delivery.h) — delivery-client, topology, submission, status, and event ABI.
 - [`discovery.h`](../include/solana/discovery.h) — caller-owned discovery-provider ABI.
 - [`ingress.h`](../include/solana/ingress.h) — fixed-layout ingress prototype API.

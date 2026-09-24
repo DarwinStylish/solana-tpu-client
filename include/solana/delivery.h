@@ -1,12 +1,27 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Okot Darwin Clay
 
+/**
+ * @file delivery.h
+ * @brief Public C ABI for topology management, local submission, and delivery events.
+ */
+
 #ifndef SOLANA_DELIVERY_H
 #define SOLANA_DELIVERY_H
 
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ * Delivery ABI schema version.
+ *
+ * This version identifies the public ABI encoded by this header. It is
+ * independent of the project release version and does not imply that a
+ * versioned project release has been published.
+ *
+ * Compatible revisions may append fields to documented extensible records.
+ * Existing fields do not change position or meaning within one ABI major.
+ */
 #define SOLANA_DELIVERY_ABI_VERSION_MAJOR UINT32_C(1)
 #define SOLANA_DELIVERY_ABI_VERSION_MINOR UINT32_C(0)
 #define SOLANA_DELIVERY_ABI_VERSION UINT32_C(0x00010000)
@@ -15,6 +30,13 @@
 extern "C" {
 #endif
 
+/**
+ * Opaque delivery-client handle.
+ *
+ * Concurrent operations on one client handle are not part of the public
+ * contract. The caller serializes topology installation, topology refresh,
+ * submission, event polling, and destruction for a given client.
+ */
 typedef struct solana_delivery_client solana_delivery_client_t;
 
 typedef uint32_t solana_delivery_status_t;
@@ -27,10 +49,13 @@ typedef uint32_t solana_delivery_status_t;
 #define SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE UINT32_C(5)
 #define SOLANA_DELIVERY_STATUS_INTERNAL_ERROR UINT32_C(6)
 
-/*
- * API status values describe local library operations only.
- * SOLANA_DELIVERY_STATUS_OK never implies transport completion,
- * transaction landing, or confirmation.
+/**
+ * API status values describe the immediate result of a library operation.
+ * Exact status applicability is operation-specific.
+ *
+ * SOLANA_DELIVERY_STATUS_OK from submission means local acceptance only.
+ * It never implies transport completion, validator receipt, transaction
+ * landing, or confirmation.
  */
 
 typedef uint64_t solana_delivery_request_id_t;
@@ -59,7 +84,7 @@ typedef struct {
     uint8_t bytes[32];
 } solana_delivery_validator_identity_t;
 
-/*
+/**
  * Stable endpoint representation.
  *
  * port is expressed in host byte order.
@@ -87,7 +112,7 @@ typedef struct {
     uint8_t reserved1[8];
 } solana_delivery_validator_t;
 
-/*
+/**
  * Explicit validator-to-endpoint association.
  * Multiple validators may reference one endpoint, and one validator
  * may reference multiple endpoints.
@@ -107,7 +132,7 @@ typedef struct {
     uint64_t reserved0;
 } solana_delivery_leader_t;
 
-/*
+/**
  * Caller-supplied topology view.
  *
  * generation orders snapshots within one client lifetime and is not
@@ -145,8 +170,11 @@ typedef struct {
     uint32_t leader_stride;
 } solana_delivery_topology_t;
 
-/*
+/**
  * Validate the structural integrity of one caller-owned topology view.
+ *
+ * topology must be non-NULL. The function borrows the topology and its
+ * arrays only for the duration of the call and retains no pointers.
  *
  * This function does not install topology, perform discovery, select
  * routes, open connections, or submit transactions.
@@ -158,18 +186,21 @@ solana_delivery_status_t solana_delivery_topology_validate(
     const solana_delivery_topology_t *topology
 );
 
-/*
+/**
  * Create an empty delivery client.
  *
- * The returned handle owns all implementation state. Creation,
- * destruction, and topology installation initially require exclusive
- * access to the handle.
+ * out_client is required. On success it receives a library-owned handle
+ * that must eventually be passed to solana_delivery_client_destroy.
+ *
+ * The returned handle owns all implementation state. Operations on one
+ * client follow the serialization contract documented for the opaque
+ * client type.
  */
 solana_delivery_status_t solana_delivery_client_create(
     solana_delivery_client_t **out_client
 );
 
-/*
+/**
  * Destroy a delivery client and all implementation-owned state.
  * Passing NULL is permitted and has no effect.
  */
@@ -177,8 +208,11 @@ void solana_delivery_client_destroy(
     solana_delivery_client_t *client
 );
 
-/*
+/**
  * Validate and install one caller-supplied topology snapshot.
+ *
+ * client and topology are required. The topology and its arrays remain
+ * caller-owned throughout the call.
  *
  * On success the implementation owns an internal copy and retains no
  * borrowed caller array pointers. After the first successful install,
@@ -192,8 +226,8 @@ solana_delivery_status_t solana_delivery_client_install_topology(
     const solana_delivery_topology_t *topology
 );
 
-/*
- * Phase 1 submission options.
+/**
+ * Submission options for local request acceptance.
  *
  * flags must currently be SOLANA_DELIVERY_SUBMIT_FLAGS_NONE.
  * max_topology_age_ns and target_limit must both be nonzero.
@@ -211,9 +245,12 @@ typedef struct {
 
 #define SOLANA_DELIVERY_SUBMIT_FLAGS_NONE UINT32_C(0)
 
-/*
+/**
  * Accept one already-signed opaque serialized transaction into the local
  * delivery lifecycle.
+ *
+ * client, transaction_bytes, options, and out_request_id are required.
+ * transaction_length must be greater than zero.
  *
  * transaction_bytes remains caller-owned. A successful call internalizes
  * all data required after return and assigns a nonzero request identifier.
@@ -227,8 +264,9 @@ typedef struct {
  * On failure, no request is accepted and out_request_id remains
  * SOLANA_DELIVERY_REQUEST_ID_NONE when out_request_id itself is valid.
  *
- * Phase 1 defines no concurrent use of one client for topology installation,
- * submission, polling, or destruction.
+ * Concurrent use of one client is not defined. The caller must serialize
+ * topology installation, topology refresh, submission, event polling,
+ * and destruction for that client.
  */
 solana_delivery_status_t solana_delivery_client_submit(
     solana_delivery_client_t *client,
@@ -245,7 +283,7 @@ typedef uint32_t solana_delivery_event_class_t;
 #define SOLANA_DELIVERY_EVENT_CLASS_ATTEMPT UINT32_C(2)
 #define SOLANA_DELIVERY_EVENT_CLASS_OBSERVATION UINT32_C(3)
 
-/*
+/**
  * Event-code values are scoped by event_class.
  *
  * Explicitly named event-code constants are part of the public ABI.
@@ -253,7 +291,7 @@ typedef uint32_t solana_delivery_event_class_t;
  */
 #define SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED UINT32_C(1)
 
-/*
+/**
  * Stable event envelope.
  *
  * SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED is meaningful only when
@@ -277,8 +315,10 @@ typedef struct {
     uint64_t reserved[2];
 } solana_delivery_event_t;
 
-/*
+/**
  * Copy pending delivery events into caller-owned storage.
+ *
+ * client and out_event_count are required.
  *
  * Polling is nonblocking. out_event_count is required and is set to zero
  * before events are consumed whenever the pointer itself is valid.
@@ -299,7 +339,7 @@ typedef struct {
  * both the implementation and caller-provided stride. struct_size reports
  * the number of event-structure bytes written for each returned event.
  *
- * Phase 1 requires exclusive access to the client while polling.
+ * Concurrent access to the same client while polling is not defined.
  */
 solana_delivery_status_t solana_delivery_client_poll_events(
     solana_delivery_client_t *client,

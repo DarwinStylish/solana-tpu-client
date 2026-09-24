@@ -61,6 +61,8 @@ The build produces the ingress and delivery static libraries under `build/`.
 - [Current implementation](CURRENT_STATE.md)
 - [Documentation index](docs/README.md)
 - [Architecture overview](docs/architecture/README.md)
+- [Public API contracts](docs/api/README.md)
+- [Examples](examples/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)
