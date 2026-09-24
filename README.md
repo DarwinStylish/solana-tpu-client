@@ -103,6 +103,8 @@ Successful local acceptance also retains one request-level `SOLANA_DELIVERY_REQU
 
 `solana_delivery_client_poll_events` provides nonblocking caller-driven FIFO event polling with explicit output stride, partial drains, and zero-consumption empty or zero-capacity polling. Polling the accepted event does not reclaim the request.
 
+Public-only delivery conformance tests exercise submission and polling composition, event-channel backpressure and recovery without depending on its private numeric capacity, stride-safe event output, and destruction with pending accepted state.
+
 `SOLANA_DELIVERY_STATUS_OK` from submission means only that the request entered library-owned local state and its accepted event was retained. The current implementation does not create transport attempts or send transaction bytes to a validator.
 
 Concrete cluster discovery sources, adaptive routing beyond the literal current-slot plan, retries, connection management, transport, transport attempts, terminal request transitions and reclamation, and observation behavior are not implemented.
