@@ -6,8 +6,6 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 event design.
 
-Request-level local-acceptance event polling is now implemented. Transport-attempt and observation events remain unimplemented.
-
 ## Context
 
 One transaction request may be routed to several candidate leaders and may be retried. The caller needs enough information to understand what the delivery library actually did without conflating local acceptance, transport progress, and on-chain observation.

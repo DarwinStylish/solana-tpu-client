@@ -6,8 +6,6 @@ Date: 2026-09-13
 
 Accepted as the Phase 1 API design.
 
-The opaque client lifecycle, caller-supplied topology installation, callable local submission boundary, request identifiers, transaction-buffer internalization, and request-owned target materialization are implemented. Deterministic resolution and bounded route planning exist as internal implementation stages. Event polling, adaptive routing, transport attempts, transport, and observation behavior described by this record remain unimplemented.
-
 ## Context
 
 The transaction-delivery architecture requires a public interface that can be consumed from C, C++, Rust, and other systems languages without importing application-specific runtime or private execution-engine types.

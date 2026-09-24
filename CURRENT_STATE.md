@@ -143,6 +143,8 @@ The implementation retains delivery events in a bounded private 64-entry ring. A
 
 `solana_delivery_client_poll_events` is nonblocking and copies pending events in FIFO storage order into caller-provided stride-aware output storage. It supports partial drains, consumes only events actually copied, and returns success with zero copied events when the queue is empty. Zero-capacity polling consumes nothing.
 
+Public-only delivery conformance tests exercise submission-to-polling FIFO behavior, stride-safe event copies, dynamically discovered event-channel backpressure and recovery without depending on the private numeric capacity, and client destruction with pending requests and unread events. C++ ABI tests pin the public topology-validation, client lifecycle, topology-installation, submission, and polling function signatures.
+
 Polling an accepted event does not reclaim its request. Terminal request transitions are not yet implemented, so accepted requests remain owned until client destruction. Client destruction releases their transaction storage, materialized target storage, and request records.
 
 Submission success remains local acceptance only. It does not create a transport attempt, send bytes, imply validator receipt, or claim landing or confirmation.
