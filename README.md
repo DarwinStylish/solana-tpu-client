@@ -1,180 +1,69 @@
 # Solana TPU Client
 
-Status: standalone pre-transport prototype.
+Solana TPU Client is a standalone native C library defining a transaction-delivery
+boundary for signed serialized Solana transactions.
 
-This repository is intended to evolve into a native Solana TPU transaction-delivery library. The current implementation does not submit transactions to validator TPU endpoints and does not implement Solana TPU QUIC transport.
+The current revision implements topology management, caller-driven discovery refresh,
+deterministic route preparation, local submission acceptance, and delivery-event polling.
+It does not transmit transactions to validator TPU endpoints.
 
-## Current Implementation
+## Status
 
-The repository currently provides a standalone experimental ingress module:
+The project is pre-release.
 
-- a public C11 header under `include/solana/`;
-- a fixed-layout little-endian trade-event decoder;
-- a loopback-only non-blocking UDP ingress prototype;
-- callback-based delivery with no dependency on a private execution engine;
-- a localhost integration test;
-- a synthetic decoder microbenchmark;
-- a static library build artifact.
+`solana_delivery_client_submit` performs local request acceptance. A successful return
+means that the transaction and selected targets entered library-owned state and the
+corresponding accepted event was retained. It does not imply transport progress,
+validator receipt, transaction landing, or confirmation.
 
-See [CURRENT_STATE.md](CURRENT_STATE.md) for the exact implementation boundary.
+A separate ingress prototype remains available for fixed-layout local event decoding and
+loopback UDP integration.
 
-## Public Ingress Prototype API
+See [CURRENT_STATE.md](CURRENT_STATE.md) for the exact implemented boundary.
 
-The current prototype builds `build/libsolana_ingress.a` and exposes `include/solana/ingress.h`.
+## Public Interfaces
 
-The decoded event contains only schema-local fields. HFT-specific event models, fixed-point types, queues, strategy state, and execution logic are not part of the public API.
+| Header | Responsibility |
+| --- | --- |
+| `include/solana/delivery.h` | Delivery client, topology, submission, status, and event ABI |
+| `include/solana/discovery.h` | Caller-owned topology discovery-provider ABI |
+| `include/solana/ingress.h` | Fixed-layout ingress prototype API |
 
-The current prototype contract is intentionally narrow:
+Transaction construction and signing remain caller responsibilities.
 
-- `solana_ingress_decode` accepts exactly one 33-byte prototype event;
-- shorter or longer buffers are rejected;
-- the side discriminator accepts only the documented buy and sell values;
-- the instruction discriminator is carried through as an opaque value and is not semantically validated;
-- callback event storage is valid only for the duration of the callback;
-- callers must copy an event if they retain it after the callback returns;
-- callback and control contexts remain owned by the caller;
-- `solana_ingress_run_local` returns `0` on requested shutdown and `-1` on failure, with `errno` identifying the failure;
-- the current event structure occupies 48 bytes and includes reserved bytes that consumers must not interpret.
-
-The project is pre-release. The current layout is tested explicitly to detect accidental ABI changes, but it is not yet declared a permanent version-1 ABI.
-
-## Delivery API and Topology State
-
-`include/solana/delivery.h` defines the Phase 1 transaction-delivery ABI vocabulary and the current client/topology-state and local-submission boundary.
-
-It currently provides:
-
-- ABI version constants;
-- an opaque delivery-client declaration;
-- fixed-width API status, request-ID, and attempt-ID types;
-- validator identity and endpoint representations;
-- explicit validator-to-endpoint associations;
-- leader and topology snapshot records;
-- an extensible submission-options structure carrying maximum topology age and bounded target policy;
-- a request/attempt/observation event envelope.
-
-The delivery boundary builds `build/libsolana_delivery.a` and currently exposes:
-
-- `solana_delivery_topology_validate`;
-- `solana_delivery_client_create`;
-- `solana_delivery_client_destroy`;
-- `solana_delivery_client_install_topology`;
-- `solana_delivery_client_submit`;
-- `solana_delivery_client_poll_events`.
-
-`include/solana/discovery.h` additionally exposes `solana_delivery_client_refresh_topology` and the caller-owned discovery-provider ABI.
-
-The validator checks the structural integrity of caller-supplied topology views, including:
-
-- public structure-size prefixes;
-- explicit array strides;
-- array pointer/count consistency;
-- element `struct_size` compatibility with the supplied stride;
-- alignment requirements;
-- reserved fields;
-- endpoint address-family, transport, and role discriminators;
-- endpoint port and IPv4 representation rules;
-- validator-to-endpoint references;
-- leader validator references and slot-range ordering.
-
-Topology validation is pure and does not install topology, perform discovery, select routes, open connections, submit transactions, or report landing.
-
-Topology installation uses copy-on-install ownership. On success, the client owns normalized copies of the ABI prefixes understood by this implementation and retains no caller array pointers. Caller snapshot storage may therefore be reused after the installation call returns success.
-
-The first installed snapshot may use any generation value. Later installations must use a strictly greater generation; equal or lower generations return `SOLANA_DELIVERY_STATUS_TOPOLOGY_STALE`. Each successful installation records a local monotonic receipt time.
-
-Installation is transactional. Structural rejection, allocation failure, or monotonic-clock failure leaves the previously installed snapshot unchanged.
-
-An empty topology is structurally valid and may be installed, but that does not imply that a usable route exists.
-
-`solana_delivery_client_refresh_topology` provides explicit synchronous topology refresh through a caller-owned discovery provider. A successful provider acquisition is passed through the existing transactional topology-installation path. The client retains neither the provider nor provider-owned snapshot storage after refresh returns, and transaction submission never performs implicit discovery.
-
-The repository does not yet provide a concrete cluster discovery source such as an RPC-backed leader-schedule and validator-contact provider.
-
-The delivery library also has an internal deterministic topology resolver. Given an installed snapshot and requested slot, it resolves matching leader records through validator-to-endpoint associations while preserving source order. It performs no ranking, deduplication, freshness policy, fanout, retries, allocation, or network activity. This resolver is not part of the public C ABI.
-
-An internal bounded route planner now consumes those resolved candidates. It deduplicates by validator-and-endpoint identity, preserves first-occurrence ordering and leader provenance, and applies a positive target limit without allocation or network activity. It remains internal and does not define a public routing-policy ABI.
-
-An internal submission-policy evaluator now checks installed-topology freshness using the library monotonic clock domain. It requires a positive maximum topology age and target limit, distinguishes unavailable from stale topology, and does not interpret topology generation or caller-observed slot context as elapsed time.
-
-`solana_delivery_client_submit` now provides callable local request acceptance. It validates the public submission options, evaluates topology freshness, resolves the installed snapshot `current_slot`, applies the deterministic bounded route planner, copies the caller transaction bytes, materializes request-owned validator identities and endpoints, and assigns a nonzero request identifier. Accepted request state remains independent of both caller-buffer lifetime and later topology replacement.
-
-Successful local acceptance also retains one request-level `SOLANA_DELIVERY_REQUEST_EVENT_ACCEPTED` event with request sequence one and no transport-attempt identifier. Request acceptance and event retention are one logical commit, and a full bounded event channel rejects the submission with `SOLANA_DELIVERY_STATUS_RESOURCE_EXHAUSTED` before the request or identifier is committed.
-
-`solana_delivery_client_poll_events` provides nonblocking caller-driven FIFO event polling with explicit output stride, partial drains, and zero-consumption empty or zero-capacity polling. Polling the accepted event does not reclaim the request.
-
-Public-only delivery conformance tests exercise submission and polling composition, event-channel backpressure and recovery without depending on its private numeric capacity, stride-safe event output, and destruction with pending accepted state.
-
-`SOLANA_DELIVERY_STATUS_OK` from submission means only that the request entered library-owned local state and its accepted event was retained. The current implementation does not create transport attempts or send transaction bytes to a validator.
-
-Concrete cluster discovery sources, adaptive routing beyond the literal current-slot plan, retries, connection management, transport, transport attempts, terminal request transitions and reclamation, and observation behavior are not implemented.
-
-## Not Yet Implemented
-
-The following capabilities remain future work:
-
-- transport of locally accepted signed serialized transactions to validator TPU endpoints;
-- leader-schedule and validator-contact discovery;
-- TPU QUIC/TLS transport and `solana-tpu` protocol negotiation;
-- validator identity and stake-weighted QoS support;
-- connection pooling and leader prewarming;
-- adaptive leader routing and controlled fanout;
-- transport retry, transport backpressure, and connection-failure handling;
-- terminal request transitions and post-terminal request reclamation;
-- transaction landing or confirmation tracking;
-- Agave and Firedancer TPU-ingress interoperability testing;
-- kernel-bypass networking.
-
-## Target Boundary
-
-The intended TPU library will accept opaque signed serialized Solana transactions and deliver them to appropriate validator TPU ingress endpoints.
-
-Transaction construction, signing, trading strategy, portfolio state, and private execution-engine behavior remain outside the transport library.
+Application strategy, portfolio state, wallet behavior, and application-specific runtime
+types are outside the library boundary.
 
 ## Build
 
 Requirements:
 
-- a POSIX environment supported by the prototype;
-- GCC/G++ or Clang/Clang++ with C11 and C++17 support;
-- POSIX sockets and pthreads.
-
-Build and test:
+- a POSIX environment;
+- GCC/G++ or Clang/Clang++;
+- GNU Make;
+- C11 and C++17 compiler support.
 
 ```bash
+make all
 make test
 ```
 
-Run the decoder microbenchmark:
+Run the deterministic fuzz smoke targets with:
 
 ```bash
-make bench
+make FUZZ_CC=clang fuzz-smoke
 ```
 
-The ingress integration test exercises the loopback UDP prototype. Delivery and discovery tests exercise local API, state, ABI, and conformance behavior without a live Solana cluster. None of these tests is a TPU integration test.
+The build produces the ingress and delivery static libraries under `build/`.
 
-## Architecture Records
+## Documentation
 
-- [ADR-0001: Fixed-Layout Trade-Event Parser Prototype](docs/architecture/0001-zero-allocation-borsh-deserialization.md)
-- [ADR-0002: Use C11 for the Native Integration Layer](docs/architecture/0002-use-c11-for-gateway-performance.md)
-- [ADR-0003: Signed Transaction Delivery Boundary](docs/architecture/0003-transaction-delivery-boundary.md)
-- [ADR-0004: Delivery Status Semantics](docs/architecture/0004-delivery-status-semantics.md)
-- [ADR-0005: Separate Discovery, Routing, Transport, and Observation](docs/architecture/0005-topology-routing-transport-separation.md)
-- [ADR-0006: Stable C ABI for Transaction Delivery](docs/architecture/0006-stable-delivery-c-abi.md)
-- [ADR-0007: Topology Snapshot Contract](docs/architecture/0007-topology-snapshot-contract.md)
-- [ADR-0008: Request and Attempt Event Model](docs/architecture/0008-request-attempt-event-model.md)
-- [ADR-0009: Deterministic Topology Resolution](docs/architecture/0009-topology-resolution.md)
-- [ADR-0010: Deterministic Bounded Route Planning](docs/architecture/0010-route-planner-policy.md)
-- [ADR-0011: Submission Admission and Topology Freshness](docs/architecture/0011-submission-admission-freshness.md)
-- [ADR-0012: Callable Submission Contract](docs/architecture/0012-callable-submission-contract.md)
-- [ADR-0013: Request Lifecycle and Event Polling](docs/architecture/0013-request-lifecycle-and-event-polling.md)
-- [ADR-0014: Use Explicit Caller-Owned Discovery Providers](docs/architecture/0014-discovery-provider-interface.md)
-
-## Technical Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for the engineering phases of the transaction-delivery architecture.
-
-The roadmap describes target work and does not imply that unimplemented transport capabilities exist in the current release.
+- [Current implementation](CURRENT_STATE.md)
+- [Documentation index](docs/README.md)
+- [Architecture overview](docs/architecture/README.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
