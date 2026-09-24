@@ -6,8 +6,6 @@ Date: 2026-09-13
 
 Accepted as the target architecture.
 
-The functionality described by this record is not implemented by the current prototype.
-
 ## Context
 
 Transaction delivery crosses several independent boundaries. A caller request may be accepted locally, routed to multiple targets, written through one or more transports, and later observed on-chain.

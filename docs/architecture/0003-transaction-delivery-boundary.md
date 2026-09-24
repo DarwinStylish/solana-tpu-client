@@ -6,8 +6,6 @@ Date: 2026-09-13
 
 Accepted as the target architecture.
 
-The functionality described by this record is not implemented by the current prototype.
-
 ## Context
 
 The existing repository contains a standalone fixed-layout inbound decoder prototype. That prototype is useful for exercising C ABI discipline, explicit byte decoding, testing, fuzzing, and repository isolation, but it is not the primary boundary of the intended TPU transaction-delivery library.

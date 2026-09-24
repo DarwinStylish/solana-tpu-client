@@ -1,36 +1,52 @@
 # Security Policy
 
-## Supported Versions
+## Supported Revisions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| > 0.1.0 | :white_check_mark: |
-| <= 0.1.0| :x:                |
+Solana TPU Client is pre-release and has no published versioned release tags.
+
+Security support applies to the latest revision of `main`. Older development revisions
+may not receive backported fixes.
 
 ## Reporting a Vulnerability
 
-Please report security vulnerabilities by emailing **security@darwinstylish.com**.
-Do **not** open public issues for security vulnerabilities.
+Report suspected security vulnerabilities privately to **security@darwinstylish.com**.
 
-## Response Timeline
+Do not open a public issue for an undisclosed vulnerability.
 
-- **Acknowledgment:** Within 48 hours of your report.
-- **Assessment:** Within 7 days of the acknowledgment.
+Include, where available:
 
-## Responsible Disclosure Policy
+- the affected commit;
+- the affected public API or input boundary;
+- the observed impact;
+- minimal reproduction steps;
+- sanitizer output, crash diagnostics, or backtraces;
+- relevant compiler and operating-system information.
 
-We ask that you:
-- Give us a reasonable amount of time to investigate and mitigate the issue before public disclosure.
-- Make a good faith effort to avoid privacy violations, destruction of data, and interruption or degradation of our services during your research.
+## Response Targets
 
-## Out of Scope
+- **Acknowledgment:** within 48 hours of receipt.
+- **Initial assessment:** within 7 days of acknowledgment.
 
-- Theoretical vulnerabilities without a working proof of concept.
-- Volumetric DoS attacks (these are handled at the infrastructure level).
+These are response targets and do not guarantee a specific remediation date.
 
-## Security Hardening Notes
+## Security-Relevant Boundaries
 
-Specific to the HFT nature of this repository:
-- **Compiler Flags:** We compile with `-fstack-protector-strong`, `-D_FORTIFY_SOURCE=2`, and `-Wextra` to ensure binary hardening.
-- **Sanitizers:** Our continuous integration thoroughly tests the system using AddressSanitizer and UndefinedBehaviorSanitizer targets.
-- **Zero-Allocation Hot Path:** The core engine operates in a strict zero-allocation mode on the hot path, mitigating broad classes of heap vulnerabilities entirely.
+Reports are particularly useful when they concern:
+
+- memory safety;
+- malformed or adversarial input handling;
+- public ABI validation;
+- topology validation and ownership;
+- request or event lifetime errors;
+- failure atomicity;
+- resource-exhaustion behavior;
+- integer overflow or bounds errors;
+- incorrect trust-boundary assumptions.
+
+## Hardening
+
+Continuous integration exercises GCC and Clang builds, warning-as-error compilation,
+AddressSanitizer, UndefinedBehaviorSanitizer, deterministic fuzz smoke tests,
+repository-isolation checks, and clean tracked-archive builds and tests.
+
+These controls reduce risk but do not constitute a claim of complete security.
