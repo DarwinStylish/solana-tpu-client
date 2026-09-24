@@ -6,8 +6,6 @@ Date: 2026-09-22
 
 Accepted as the initial internal submission-admission policy.
 
-The internal submission-policy evaluator described by this record is implemented. Callable local submission now composes this evaluator with deterministic resolution, bounded route planning, transaction-buffer internalization, and owned request creation. Transport attempts, terminal request lifecycle transitions, polling, and event emission remain unimplemented.
-
 This record defines the policy gate that determines whether an installed topology snapshot is fresh enough to proceed toward topology resolution and bounded route planning.
 
 It does not define a callable public submission API, transaction ownership, request lifecycle, transport attempts, retries, or event emission.

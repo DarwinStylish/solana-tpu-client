@@ -6,8 +6,6 @@ Date: 2026-09-22
 
 Accepted as the initial request-lifecycle and event-polling design.
 
-The local-acceptance lifecycle, bounded event retention, and caller-driven polling behavior described by this record are implemented. Terminal request transitions, transport attempts, retries, transport, and observation remain unimplemented.
-
 This record defines request-level event sequencing, bounded event retention, polling, lifecycle backpressure, and the relationship between request state and required events.
 
 It does not define transport attempts, retry policy, QUIC or TLS behavior, landing observation, confirmation, or cancellation.
