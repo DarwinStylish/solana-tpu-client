@@ -38,6 +38,9 @@ jobs:
       - name: Test
         run: make CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} test
 
+      - name: Public examples
+        run: make CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} examples
+
       - name: Diff check
         run: git diff --check
 
@@ -80,6 +83,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Validate documentation
+        run: make docs-check
+
       - name: Verify clean checkout
         run: |
           if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
@@ -99,7 +105,9 @@ jobs:
           tmpdir="$(mktemp -d)"
           if git archive HEAD | tar -x -C "$tmpdir" &&
              make -C "$tmpdir" CC=gcc CXX=g++ all &&
-             make -C "$tmpdir" CC=gcc CXX=g++ test; then
+             make -C "$tmpdir" CC=gcc CXX=g++ test &&
+             make -C "$tmpdir" CC=gcc CXX=g++ examples &&
+             make -C "$tmpdir" docs-check; then
             rm -rf "$tmpdir"
           else
             status=$?
