@@ -1,18 +1,23 @@
-## Description
-<!-- Describe your changes in detail -->
+## Summary
 
-## Motivation and Context
-<!-- Why is this change required? What problem does it solve? -->
-<!-- If it fixes an open issue, please link to the issue here. -->
+Describe the change and its effect.
 
-## How Has This Been Tested?
-<!-- Please describe in detail how you tested your changes. -->
-<!-- Include details of your testing environment, and the tests you ran. -->
+## Public Contract Impact
 
-## C11 Zero-Allocation Checklist:
-- [ ] I have read the [CONTRIBUTING](CONTRIBUTING.md) document.
-- [ ] My code strictly compiles with `-std=c11` and throws no warnings with `-Wall -Wextra -Werror`.
-- [ ] I have introduced **zero** dynamic allocations (`malloc`, `free`) on the hot path.
-- [ ] I have run `make test` and all unit tests pass.
-- [ ] I have run `make test-asan` and AddressSanitizer reports no leaks or out-of-bounds access.
-- [ ] I have run `make test-ubsan` and UndefinedBehaviorSanitizer reports no issues.
+Describe any effect on the public API, ABI, ownership, lifetime, compatibility, or
+caller-visible semantics. Write `None` when there is no public-contract impact.
+
+## Verification
+
+Describe the commands and tests used to verify the change.
+
+## Checklist
+
+- [ ] The change is scoped to one coherent concern.
+- [ ] Commits are atomic and use Conventional Commits.
+- [ ] Public API or ABI changes include appropriate tests.
+- [ ] Ownership and lifetime implications are documented where applicable.
+- [ ] `make test` passes.
+- [ ] Relevant fuzz or sanitizer coverage has been run.
+- [ ] Documentation reflects caller-visible behavior.
+- [ ] Repository boundaries are preserved.

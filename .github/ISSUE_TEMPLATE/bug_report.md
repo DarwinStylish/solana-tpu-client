@@ -1,35 +1,44 @@
 ---
 name: Bug report
-about: Create a report to help us improve the zero-allocation engine
-title: '[BUG] '
+about: Report a reproducible Solana TPU Client defect
+title: "[BUG] "
 labels: bug
-assignees: ''
+assignees: ""
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Description
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Compile with '...'
-3. Run '....'
-4. See error
+Describe the observed behavior.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Reproduction
 
-**Environment (please complete the following information):**
- - OS: [e.g. Ubuntu 22.04, Amazon Linux 2023]
- - Architecture: [e.g. x86_64, aarch64]
- - Compiler: [e.g. gcc 13.1, clang 17]
- - Commit Hash: [e.g. a1b2c3d]
+Provide the smallest reproducible sequence of commands, inputs, or API calls.
 
-**Sanitizer Output**
-If applicable, please paste the output from AddressSanitizer (ASan) or UndefinedBehaviorSanitizer (UBSan):
+## Expected Behavior
+
+Describe the expected result.
+
+## Environment
+
+- Operating system:
+- Architecture:
+- Compiler and version:
+- Commit:
+- Build flags, if non-default:
+
+## Public API or Component
+
+Identify the relevant public API, parser, topology operation, discovery provider,
+submission path, event-polling path, build target, or test.
+
+## Diagnostics
+
+Include sanitizer output, assertion failures, logs, or backtraces when available.
+
 ```text
-(paste ASan/UBSan logs here)
+paste diagnostics here
 ```
 
-**Additional context**
-Add any other context about the problem here.
+## Additional Context
+
+Add any other information required to reproduce or understand the behavior.
