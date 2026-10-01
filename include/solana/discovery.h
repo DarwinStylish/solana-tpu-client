@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Okot Darwin Clay
 
+/**
+ * @file discovery.h
+ * @brief Caller-owned topology discovery-provider interface.
+ */
+
 #ifndef SOLANA_DISCOVERY_H
 #define SOLANA_DISCOVERY_H
 
@@ -12,7 +17,7 @@
 extern "C" {
 #endif
 
-/*
+/**
  * Acquire one coherent caller-owned topology snapshot.
  *
  * On SOLANA_DELIVERY_STATUS_OK, *out_topology must identify a complete
@@ -27,7 +32,7 @@ typedef solana_delivery_status_t
     const solana_delivery_topology_t **out_topology
 );
 
-/*
+/**
  * Release one topology borrow previously returned successfully by acquire.
  *
  * Providers whose snapshot storage requires no per-acquisition cleanup may
@@ -41,7 +46,7 @@ typedef void
 
 #define SOLANA_DELIVERY_DISCOVERY_PROVIDER_FLAGS_NONE UINT32_C(0)
 
-/*
+/**
  * Caller-owned discovery provider descriptor.
  *
  * context is opaque caller-owned state and may be NULL.
@@ -61,8 +66,11 @@ typedef struct {
     solana_delivery_discovery_release_fn release;
 } solana_delivery_discovery_provider_t;
 
-/*
+/**
  * Acquire and install one topology snapshot through a caller-owned provider.
+ *
+ * client and provider are required. provider->acquire is required;
+ * provider->release is optional.
  *
  * Refresh is explicit and synchronous. It does not occur implicitly during
  * transaction submission.
@@ -86,7 +94,7 @@ typedef struct {
  * callback is invoked exactly once after the installation attempt, regardless
  * of whether installation succeeds.
  *
- * Phase 1 requires exclusive access to the client during refresh.
+ * Concurrent access to the same client during refresh is not defined.
  */
 solana_delivery_status_t
 solana_delivery_client_refresh_topology(
